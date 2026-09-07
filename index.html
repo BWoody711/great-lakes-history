@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Great Lakes palaeogeography and isostatic rebound, computed</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Great Lakes palaeogeography, computed</h1>
+  <p>Every shoreline here is solved, not drawn. A NOAA topo-bathymetric grid is lowered by an isostatic rebound field, the Dalton NADI-1 ice margin is imposed as a dam, and water is routed until each basin finds its sill. Toggle layers at right; drag the scrubber to move by century.</p>
+</header>
+
+<div class="mapwrap">
+  <div class="mapframe">
+    <canvas id="map" width="1400" height="840"></canvas>
+    <div class="reading">
+      <div class="yr" id="yr">14,500 <small>years before present</small></div>
+      <div class="snap" id="snap"></div>
+    </div>
+    <div class="loading" id="loading">loading solved timesteps…</div>
+  </div>
+  <div class="layers">
+    <div class="grp">
+      <h3>Base layer</h3>
+      <label class="radio"><input type="radio" name="base" value="none" checked> plain relief</label>
+      <label class="radio"><input type="radio" name="base" value="uplift"> uplift since date</label>
+      <label class="radio"><input type="radio" name="base" value="topo"> palaeo topo-bathymetry</label>
+      <label class="radio"><input type="radio" name="base" value="diff"> ICE-7G − ICE-6G</label>
+    </div>
+    <div class="grp">
+      <h3>Overlays</h3>
+      <label><input type="checkbox" id="lyLakes" checked><b class="sw" style="background:#22537d"></b>palaeolakes</label>
+      <label><input type="checkbox" id="lyIce" checked><b class="sw" style="background:#e9f1f4"></b>ice margin</label>
+      <label><input type="checkbox" id="lySea" checked><b class="sw" style="background:#3a8b7e"></b>marine</label>
+      <label><input type="checkbox" id="lyModern" checked><b class="sw" style="background:transparent;border:1px dashed #6d7161"></b>modern shoreline</label>
+      <label><input type="checkbox" id="lyAlg" checked><b class="sw" style="background:transparent;border:2px dashed #e0512f"></b>Algonquin plane</label>
+      <label><input type="checkbox" id="lySpill" checked><b class="sw" style="background:#a24334;height:3px;border:none"></b>spill points</label>
+      <label><input type="checkbox" id="lyLabels" checked><b class="sw" style="background:transparent"></b>lake labels</label>
+      <label><input type="checkbox" id="lyTransect"><b class="sw" style="background:transparent;border:2px dashed #b1372a"></b>rebound transect line</label>
+    </div>
+  </div>
+</div>
+
+<div class="scrub">
+  <h2>Modelled water-plane elevation by basin, metres relative to present sea level</h2>
+  <svg class="hydro" id="hydro" viewBox="0 0 1000 200" aria-hidden="true"></svg>
+  <input type="range" id="slider" min="0" max="14500" step="100" value="0" aria-label="Time, oldest at left">
+  <div style="display:flex;justify-content:space-between;font:italic 12.5px Georgia,serif;color:var(--dim);margin-top:2px"><span>14,500 years BP</span><span>present</span></div>
+  <div class="controls">
+    <button class="btn" id="play">Play</button>
+    <button class="btn" id="back">← century</button>
+    <button class="btn" id="fwd">century →</button>
+    <span style="display:flex;gap:8px;align-items:center">
+      <span style="font:italic 13px Georgia,serif;color:var(--dim)">ice margin</span>
+      <button class="btn" id="mgOpt" aria-pressed="true">optimal</button>
+      <button class="btn" id="mgMax" aria-pressed="false">maximum</button>
+    </span>
+    <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span style="font:italic 13px Georgia,serif;color:var(--dim)">rebound model</span>
+      <button class="btn" id="m6" aria-pressed="false">ICE-6G_C</button>
+      <button class="btn" id="m7" aria-pressed="true">ICE-7G_NA</button>
+      <div class="scale" id="scaleWrap" style="display:none"><span id="smin"></span><canvas class="ramp" id="ramp" width="150" height="11"></canvas><span id="smax"></span></div>
+    </span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="col">
+    <h3>Solved state at this timestep</h3>
+    <table id="state"></table>
+    <div class="conf" id="conf"></div>
+  </div>
+  <div class="col">
+    <h3>Control run — model at 0 ka against the real lakes</h3>
+    <table id="valid"></table>
+    <div class="conf">Nothing is tuned to these numbers; they fall out of flooding the modern grid.</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><b class="sw" style="background:#e9f1f4"></b>Laurentide ice (NADI-1 optimal)</span>
+  <span><b class="sw" style="background:#22537d"></b>Lake, &gt;4000 km²</span>
+  <span><b class="sw" style="background:#5f93ba"></b>Smaller lake</span>
+  <span><b class="sw" style="background:#3a8b7e"></b>Marine</span>
+  <span><b class="sw" style="background:transparent;border:1px dashed #6d7161"></b>Modern shoreline</span>
+  <span><b class="sw" style="background:#a24334;height:3px;border:none"></b>Modelled spill point</span>
+  <span><b class="sw" style="background:transparent;border:2px dashed #e0512f"></b>Lake Algonquin, mapped 184 m plane</span>
+</div>
+
+<h2 style="font:italic 400 15px/1.4 Georgia,serif;color:var(--dim);margin:30px 0 0">Rebound transect, Chicago outlet to North Bay sill</h2>
+<div class="mapwrap" style="margin-top:8px">
+  <div class="mapframe"><canvas id="sec" width="1200" height="380"></canvas></div>
+</div>
+<div class="readout" id="readout"></div>
+
+<section class="notes">
+<h4>What was done</h4>
+<p>The domain is 95°W–70°W, 38°N–53°N at 30 arc-seconds, about 5.4 million cells. For each 500-year step the modern topo-bathymetry is lowered by the uplift that has occurred since that date, the ice sheet is raised to an impassable wall, and depressions are filled by grayscale reconstruction with the domain edge as the only drain. Water depth is the filled surface minus the ground; each lake's level is therefore the elevation of the lowest sill on its rim, found rather than assumed. Marine flooding is handled separately, using the eustatic curve read off the deep-ocean cells of the same rebound file.</p>
+
+<h4>Sources</h4>
+<ul>
+<li>Topography and bathymetry — ETOPO 2022 15″ global relief, NOAA NCEI, which carries the NOAA Great Lakes bathymetric grids. Six tiles, mosaicked, then aggregated to 30″ by minimum rather than mean: averaging closed the St. Clair, Niagara and St. Marys channels, which are narrower than a cell, and with them the outlets the whole model turns on.</li>
+<li>Ice margins — NADI-1 optimal isochrones, Dalton et al. 2023, <em>Quaternary Science Reviews</em> 321, 108345 (Zenodo 8161764). 49 isochrones at 500-year steps; the optimal rather than minimum or maximum extent is used throughout.</li>
+<li>Isostatic rebound — <b>ICE-7G_NA (VM7)</b> land deformation, Roy &amp; Peltier 2017–2018, via Godbout, Brouard and Roy, PANGAEA 947536. This is the current model of the ICE-<em>x</em>G series for North America; its ice loading history was refined against GPS vertical velocities and Holocene sea level, and it was then validated against the present-day tilt of proglacial lake strandlines, which is precisely the quantity this reconstruction rests on. The <code>GIA</code> field is uplift since time <em>t</em>, interpolated by bicubic spline from the native 1° lattice, then lightly smoothed across timesteps — see the note on small basins below. An earlier version of this map used ICE-6G_C (VM5a); the rebound-model toggle above shows what changed.</li>
+</ul>
+
+<h4>Where it agrees with the geology</h4>
+<ul>
+<li>At 0 ka the four lakes come out within 1–5% on area and 1–4 m on level, and Michigan–Huron spills at Port Huron and Ontario at the Thousand Islands — the real outlets, located by the model.</li>
+<li>At 14 ka a single proglacial lake ponds against the ice across the Erie, Saginaw and Huron basins at 218 m, close to the mapped Lake Warren shoreline.</li>
+<li>At 5 ka the confluent upper lakes stand at <b>184.1 m and spill at −82.45, 42.95</b> — the Nipissing highstand elevation, at Port Huron, with nothing in the model told to put it there.</li>
+<li>At 0 ka all four modern outlets are located by the model: Port Huron, the Sault, Niagara and the Thousand Islands.</li>
+<li>The Champlain Sea appears unprompted in the St. Lawrence and Ottawa lowlands between roughly 13 and 11 ka, because the model's own sea level meets the model's own depressed ground.</li>
+<li>Superior stays confluent with Michigan–Huron through the mid-Holocene and separates at the Sault between 2 and 1.5 ka, which is when the geological record has it separating.</li>
+</ul>
+
+<h4>The Algonquin outline</h4>
+<p>The dotted line is not a model result. It is the known lake, put on the model's own topography so the two can be compared directly. The Algonquin strandline is horizontal at about 184 m in the zone south of the hinge line and rises north-eastward from there, and that rise is differential uplift. So if the modern strandline elevation is <code>z(x) = 184 + [U(x,t) − U(ref,t)]</code>, then in the palaeo frame the model works in, <code>surf = dem − U</code>, the same water surface is flat at <code>184 − U(ref,t)</code>. The known lake is therefore a single horizontal flood of the palaeo surface at a level fixed by the uplift at one reference locality, taken here as Port Huron. That level rises from 191.8 m at 13 ka to 216.2 m at 11.5 ka in the palaeo frame — the same 184 m surface seen through a landscape that has since subsided beneath it.</p>
+<p>Two things are imposed rather than derived. The outline is clipped to the upper Great Lakes basin, because the plane alone floods east through the deeply depressed Ontario and Ottawa basins — the same escape that suppresses Algonquin in the solved run — and the known lake did not occupy them. The northern edge is cut by whichever ice margin is selected, so it moves when you switch between the optimal and maximum envelopes. Inside those constraints the shoreline position is set entirely by topography and the water plane. It is drawn for 13 to 11.5 ka; the main phase is 12.6 to 11.5 ka.</p>
+<p>Comparing the two is the point. Under the optimal margin the solved lake sits far inside the dotted line and drains east. Under the maximum margin at 11.5 ka the solved lake fills nearly to it — 168,000 km² against the plane's 202,000 km² — but through Kirkfield at 166 m rather than Port Huron at 184 m.</p>
+
+<h4>Where it disagrees, and why that matters</h4>
+<ul>
+<li><strong>The Algonquin highstand does not appear.</strong> The record has the upper lakes held at about 184 m from 12.6 to 11.5 ka by ice blocking the eastern outlets; the model drains them east far earlier and far lower. The NADI-1 optimal margin does not hold the Port Huron readvance that impounded Algonquin, and ICE-6G's Ontario-basin depression opens an eastern escape as soon as the ice clears it.</li>
+<li><strong>The lowstands are too early and too deep.</strong> Under the optimal margin the minimum arrives near 11.5 ka rather than 10.4; the maximum margin moves it to 10.5 ka, which is close to right, so the timing error here really is the ice chronology. The depth is not fixed by either: Superior is still drawn down well below anything Lake Houghton reached.</li>
+<li><strong>The forebulge is probably overdriven.</strong> ICE-6G puts Port Huron 32 m higher at 11 ka than today. The clearest symptom is Erie: the model has it starting near 200 m at 11 ka and falling steadily to 170 m, whereas the record has early Lake Erie low, around 145 m, and <em>rising</em> to its present 174 m. The model has the sign of Erie's history backwards, and the reason is a peripheral bulge that subsides too much rather than anything in the routing.</li>
+<li><strong>The sills are the modern ones.</strong> Niagara has cut about 11 km of gorge since 12.4 ka, and the Chicago and St. Clair outlets have been dredged. No resolution fixes this: the model is flooding today's channels, not the ones that existed at the time.</li>
+<li><strong>Marine flooding needed the lakes to take precedence.</strong> The marine test is pure connectivity: any cell below contemporaneous sea level, reachable from the ocean through cells also below sea level. Run on its own it tagged Georgian Bay as sea, because the rebound field depresses that basin to −137 m against a sea level of −76 m. But Georgian Bay at that date holds a solved lake standing at 93.8 m: a basin under a water plane above sea level is fresh, whatever its floor elevation. Trimming the marine mask by the lakes rather than the lakes by the marine mask confines the incursion to the Ottawa and St. Lawrence lowlands, with a western limit near Pembroke, which is close to the mapped marine limit. Nothing about the Champlain Sea is imposed; it is still a consequence of the model's own sea level meeting its own depressed ground.</li>
+<li><strong>Small, shallow basins are below the resolution of the rebound field.</strong> ICE-7G/ICE-6G are 1° global lattices; a bedrock sill a few kilometres across, with only a few tens of metres of relief, sits well below that. Lake Simcoe is the clearest case: it solves as intermittently dry for several thousand years around the mid-Holocene, which the archaeological record does not support — the basin has almost certainly held water continuously since deglaciation. A per-timestep spline through a coarse, unevenly-sampled point set has no reason to respect the fact that real uplift is smooth in time, so the model now damps that with a light Gaussian filter across timesteps at each grid cell (see <code>model.py:_gia_cube</code>). That suppresses single-timestep interpolation noise without inventing sub-lattice resolution the source data doesn't have, and it left the four main lakes' control-run numbers unchanged — but it is a mitigation, not a fix, and small-basin timing anywhere in the domain should be read with that in mind.</li>
+<li><strong>Resolution.</strong> 30″ cells are roughly 640 by 925 m here. Minimum-aggregation keeps the channels open but biases every sill low, which is most of the 1–4 m deficit in the control run.</li>
+</ul>
+<p>The disagreements are the useful part. Where this reconstruction departs from the strandline record, it is doing so for a stated reason in a named input, which is a different kind of object from a map drawn to match the literature.</p>
+
+<h4>On the choice of rebound model</h4>
+<p>The first version of this used ICE-6G_C (VM5a). That was the wrong choice. <b>ICE-7G_NA (VM7)</b>, Roy &amp; Peltier 2017–2018, is the more recent model of the series and its North American ice loading history was refined specifically against GPS vertical velocities and US Atlantic coast Holocene sea level. It was then tested against the observed present-day tilt of proglacial lake strandlines — a dataset it was not tuned on, and the exact quantity this reconstruction depends on — and it removes the misfit that ICE-6G_C shows there. Everything defaults to ICE-7G_NA; the rebound-model toggle shows what changed.</p>
+<p>Two caveats on that. ICE-6G_D (2018) is a later revision of ICE-6G, but it changes the rotational feedback treatment rather than the North American ice history, so it is not the relevant upgrade for this problem. And ICE-7G is a 1° global model: the lattice visible in the uplift and difference layers is the real resolution of the data, and a bedrock sill a few kilometres across is far below it.</p>
+
+<h4>What switching models changed</h4>
+<ul>
+<li>The Nipissing highstand now appears. The confluent upper lakes reach <b>184.1 m at 5 ka and spill at −82.45, 42.95</b>, which is Port Huron. The mapped Nipissing beach is at about 184 m. Under ICE-6G the same peak came out near 187 m.</li>
+<li>The Algonquin failure did not change. The upper lakes still drain east far too early and too low between 12.5 and 11 ka. Since swapping the rebound model left this untouched, it is an ice-margin problem — the NADI-1 optimal isochrones do not carry the Port Huron readvance that dammed Algonquin — and not a rebound problem. That is worth more than either model on its own: it localises the error to a named input.</li>
+</ul>
+
+<h4>What the transect shows</h4>
+<p>The section runs from the Chicago outlet north-east to the North Bay sill, which is roughly the direction of maximum isostatic gradient across the upper lakes and the direction along which the Algonquin and Nipissing strandlines tilt. The grey line is the modern ground and lake floor; the dark line is the same ground with the rebound of the intervening period removed; the blue band is the water plane the flooding model solves for. Watch the north-east end of the section rise past the south-west end: that crossover is why the upper lakes drained through North Bay for several thousand years and then stopped. Turn on the transect line overlay above to see where it runs.</p>
+</section>
+
+<footer class="credit">Palaeo-hydrography and rebound fields computed from ETOPO 2022, NADI-1 (Dalton et al. 2023) and ICE-6G_C/ICE-7G_NA (Roy &amp; Peltier). Method and full source list in the repository README.</footer>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>

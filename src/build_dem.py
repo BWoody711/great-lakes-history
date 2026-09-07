@@ -11,7 +11,7 @@ lon_c = W + (np.arange(nx)+0.5)*RES
 lat_c = N - (np.arange(ny)+0.5)*RES
 
 for tile in ["N45W105","N45W090","N45W075","N60W105","N60W090","N60W075"]:
-    f = f"data/etopo_{tile}.nc"
+    f = f"data/raw/etopo_{tile}.nc"
     d = netCDF4.Dataset(f)
     tlat = d['lat'][:].astype('f8'); tlon = d['lon'][:].astype('f8')
     # index ranges of the target grid that fall inside this tile
@@ -43,3 +43,12 @@ for name, lon, lat in [("Superior mid-basin", -87.5, 47.6), ("Huron deep (Goderi
                        ("Port Huron", -82.42, 43.00), ("North Bay", -79.45, 46.32),
                        ("Rome NY", -75.45, 43.21), ("Fort Wayne", -85.13, 41.08)]:
     print(f"  {name:24s} {at(lon,lat):8.1f} m")
+
+# 15" -> 30" by 2x2 block minimum: averaging closes the St. Clair, Niagara and
+# St. Marys channels, which are narrower than one 15" cell, and with them the
+# outlets the flooding model turns on. model.py reads this file directly.
+ny30, nx30 = ny//2, nx//2
+dem30 = dem[:ny30*2, :nx30*2].reshape(ny30, 2, nx30, 2)
+dem30_min = np.nanmin(dem30, axis=(1, 3)).astype(np.float32)
+print("30\" grid", nx30, "x", ny30, "  nan cells:", int(np.isnan(dem30_min).sum()))
+np.save("data/dem30_min.npy", dem30_min)

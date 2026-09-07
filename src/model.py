@@ -14,6 +14,7 @@ Per 500-yr timestep:
 """
 import numpy as np, geopandas as gpd, json, os, sys, time
 from scipy.interpolate import RectBivariateSpline
+from scipy.ndimage import gaussian_filter1d
 from scipy import ndimage as ndi
 from skimage.morphology import reconstruction
 from rasterio.features import rasterize, shapes
@@ -26,9 +27,9 @@ RES = 1/120.0
 MODEL = 'ICE7G'
 import os as _os
 MARGIN = _os.environ.get('MARGIN', 'OPTIMAL')   # 'OPTIMAL', 'MAX' or 'MIN'      # 'ICE6G' or 'ICE7G'
-GDB = {'ICE6G': ('data/ice6g_pts/ICE6G_Data_points.gdb', 'ICE6G_datapoint_%05d'),
-       'ICE7G': ('data/ice7g/ICE7G_Data_points_all.gdb', 'ICE7G_datapoints_%05d')}[MODEL]
-NADI = 'data/nadi1/NADI-1 shapefiles Dalton et al. QSR'
+GDB = {'ICE6G': ('data/raw/ice6g_pts/ICE6G_Data_points.gdb', 'ICE6G_datapoint_%05d'),
+       'ICE7G': ('data/raw/ice7g/ICE7G_Data_points_all.gdb', 'ICE7G_datapoints_%05d')}[MODEL]
+NADI = 'data/raw/nadi1/NADI-1 shapefiles Dalton et al. QSR'
 
 dem = np.load('data/dem30_min.npy')
 ny, nx = dem.shape
@@ -40,8 +41,13 @@ AREA_ROW = ((RES*111.32)*(RES*111.32*np.cos(np.radians(lat_c)))).astype('f4')
 MIN_AREA_KM2 = 120.0
 SIMPLIFY = 0.010
 
+# Every 500-yr solved timestep, oldest to 0. Matches STEPS in export.py /
+# export_rebound.py; kept here too because the GIA cube below is built once
+# for the whole run, not per call.
+STEPS_T = list(range(14500, 500, -500)) + [0]
 
-def gia_grid(t_yr):
+
+def _gia_grid_raw(t_yr):
     g = gpd.read_file(GDB[0], layer=GDB[1] % t_yr)
     lon = np.where(g['lon'].values > 180, g['lon'].values-360, g['lon'].values)
     lat = g['lat'].values
@@ -57,6 +63,61 @@ def gia_grid(t_yr):
     # lat_c runs north->south; evaluate ascending then flip back
     z = spl(lat_c[::-1], lon_c)[::-1]
     return z.astype('f4'), esl
+
+
+_gia_cube_cache = None
+
+
+def _gia_cube():
+    """Uplift-since-t for every solved timestep, smoothed along the time axis.
+
+    ICE-6G/ICE-7G give GIA on a 1 deg lattice (see README); RectBivariateSpline
+    interpolates that down to the 30" grid, but at a small, shallow basin (a
+    few tens of km across, a few tens of m of sill-to-floor relief -- Lake
+    Simcoe is the case that surfaced this) a handful of metres of spline
+    wobble between control points is enough to open or close its sill. Real
+    postglacial uplift is a smooth, slowly-relaxing function of time at any
+    fixed point; it does not vanish for a few timesteps and come back. Fitting
+    each timestep's spline independently, from a different scattered point set
+    each time, has no reason to respect that -- so any single-timestep jump
+    that isn't echoed by its neighbours is spline noise, not signal, and is
+    filtered out here rather than left to flip small basins on and off.
+    This does not add resolution the 1 deg lattice doesn't have; it only
+    removes noise the per-timestep fit adds on top of it.
+    """
+    global _gia_cube_cache
+    if _gia_cube_cache is not None:
+        return _gia_cube_cache
+    cache_path = f'data/gia_cube_{MODEL}.npz'
+    if os.path.exists(cache_path):
+        d = np.load(cache_path)
+        _gia_cube_cache = (d['gia'], d['esl'])
+        return _gia_cube_cache
+    print(f'building smoothed GIA cube for {MODEL}, {len(STEPS_T)} timesteps...', flush=True)
+    grids, esls = [], []
+    for t in STEPS_T:
+        if t == 0:
+            grids.append(np.zeros_like(dem)); esls.append(0.0)
+        else:
+            g, e = _gia_grid_raw(t)
+            grids.append(g); esls.append(e)
+            print(f'  {t}', flush=True)
+    gia = np.stack(grids).astype('f4')
+    esl = np.array(esls, dtype='f8')
+    # sigma=1 step (~500-1000 yr, since the final gap is 1000 yr): a light
+    # touch that damps single-timestep spikes without smearing the multi-ka
+    # trend (deglaciation, forebulge collapse) the model depends on elsewhere.
+    gia = gaussian_filter1d(gia, sigma=1.0, axis=0, mode='nearest')
+    esl = gaussian_filter1d(esl, sigma=1.0, axis=0, mode='nearest')
+    np.savez(cache_path, gia=gia, esl=esl)
+    _gia_cube_cache = (gia, esl)
+    return _gia_cube_cache
+
+
+def gia_grid(t_yr):
+    gia, esl = _gia_cube()
+    idx = STEPS_T.index(t_yr)
+    return gia[idx], float(esl[idx])
 
 
 def ice_mask(label):

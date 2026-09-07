@@ -12,6 +12,7 @@ etopo_*.nc
 
 # intermediates
 *.npy
+*.npz
 __pycache__/
 .ipynb_checkpoints/
 

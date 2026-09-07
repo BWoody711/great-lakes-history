@@ -65,6 +65,24 @@ Does not:
   rising 145→174 m. That is an overdriven peripheral forebulge, not a routing error.
 - **Sill geometry of the past.** The model floods today's channels. Niagara has cut
   ~11 km of gorge since 12.4 ka; Chicago and St. Clair are dredged.
+- **Small, shallow basins below the resolution of the rebound field.** Lake Simcoe
+  solves as intermittently dry for several thousand years around the mid-Holocene,
+  which the archaeological record does not support — the basin has almost certainly
+  held water continuously since deglaciation. ICE-7G/ICE-6G are 1° global lattices;
+  a bedrock sill a few kilometres across, with only a few tens of metres of relief, is
+  well below that. `model.py` now smooths the interpolated uplift field across
+  timesteps at each grid cell (`_gia_cube`, a light Gaussian filter in time) on the
+  reasoning that real postglacial uplift is smooth in time, so a single-timestep spline
+  departure from its neighbours is fit noise, not signal. That change was verified
+  against the control run and the Nipissing highstand — both unchanged to within
+  rounding — but it did **not** rescue Simcoe: the same 12–3 ka dry gap comes out
+  whether or not the smoothing is applied. That null result is itself informative — it
+  means the problem there is not per-timestep interpolation jitter but a sustained,
+  smooth-in-time misestimate of the basin's sill-to-floor differential, i.e. the 1°
+  lattice genuinely cannot resolve a basin this small. No amount of temporal smoothing
+  fixes a spatial resolution limit, and pushing the filter harder to force Simcoe right
+  would mean smearing the real multi-millennial trend (Nipissing, Champlain Sea timing)
+  to fix one basin by hand, which is the tuning this project specifically avoids.
 
 Switching the rebound model from ICE-6G_C to ICE-7G_NA fixed the Nipissing highstand
 and left the Algonquin failure untouched, which is what localises that failure to the
@@ -72,19 +90,27 @@ ice-margin dataset rather than to the rebound field.
 
 ## Layout
 
+    index.html                     the deployed page: palaeolakes, ice, Algonquin,
+                                   uplift/topo-bathymetry/model-diff rasters and the
+                                   rebound transect as togglable layers on one map,
+                                   fetching data/*.json at runtime
+    assets/
+      style.css, app.js            styling and logic for index.html
     viewers/
-      great-lakes-modelled.html    palaeogeography, century slider, margin toggle,
-                                   Algonquin overlay; all data embedded
-      great-lakes-rebound.html     uplift field, palaeo topo-bathymetry, ICE-7G minus
-                                   ICE-6G, and a Chicago–North Bay tilt transect
-      great-lakes-deglaciation.html  the first hand-drawn version, kept for contrast;
-                                   it is schematic and uses no real data
+      great-lakes-modelled.html    standalone single-file snapshot of the palaeolake
+                                   view, all data embedded; kept for offline sharing
+      great-lakes-rebound.html     standalone single-file snapshot of the rebound view,
+                                   all data embedded; kept for offline sharing
     data/
       paleo_optimal.json           solved lakes, 29 timesteps, NADI-1 optimal margin
       paleo_max.json               same, maximum margin
       algonquin.json               the mapped 184 m Algonquin plane on the model's
                                    palaeo-topography, 13–11.5 ka
       rebound.json                 uplift lattices, background grid, transect
+      raw/                         fetched inputs, not committed (fetch_data.sh)
+      gia_cube_ICE6G.npz,
+      gia_cube_ICE7G.npz           cached, time-smoothed uplift lattices; not
+                                   committed, rebuilt on first run of model.py
     gis/
       great_lakes.gpkg             all vector layers in one file (preferred)
       great_lakes_shoreline_typed.shp   500 m segments with substrate and drift class
@@ -153,10 +179,28 @@ Needs numpy, scipy, scikit-image, rasterio, geopandas, shapely, pyogrio, netCDF4
 `mdbtools` plus `e00compr` for the two 1994-vintage ESI atlases. Peak memory is about
 1.5 GB at 30″; at 15″ it needs roughly 4 GB and gives sharper outlet channels.
 
+`build_dem.py` mosaics the ETOPO tiles to `data/dem15.npy` and also writes the 30″
+grid `model.py` actually reads, `data/dem30_min.npy`, by 2×2 block-minimum decimation
+(minimum, not mean, for the reason given in the control run above). The first call to
+`model.py` per rebound model also builds and caches `data/gia_cube_{ICE6G,ICE7G}.npz`
+— every solved timestep's uplift lattice, smoothed across time — which both margin
+runs of `export.py` then share; expect that one-time build to take a few minutes.
+
+## Deploying
+
+`index.html` at the repository root is a static page with no build step: it fetches
+`data/*.json` at load time, so it only needs to be served over HTTP, not opened as a
+`file://` URL. On GitHub Pages: repository **Settings → Pages → Source → Deploy from a
+branch**, branch `main`, folder `/ (root)`. `.nojekyll` is committed so Pages serves the
+`data/` and `assets/` directories as-is. To preview locally: `python -m http.server` from
+the repository root, then open `http://localhost:8000/`.
+
 ## Caveats worth carrying forward
 
 - ICE-7G is a 1° global model. The lattice visible under the rebound fields is the real
-  resolution of the data; a bedrock sill a few kilometres across is far below it.
+  resolution of the data; a bedrock sill a few kilometres across is far below it — see
+  Lake Simcoe under "What it reproduces, and what it does not" for the concrete case
+  and what was tried against it.
 - ESI atlas vintages range from 1994 to 2025. Lake Huron's US shore is typed from
   30-year-old mapping.
 - ECCC nearshore reaches average 17 km on Superior against 1.3 km on Erie, so the
