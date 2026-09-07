@@ -1,0 +1,24 @@
+# raw input datasets, ~700 MB; fetch with src/fetch_data.sh
+data/raw/
+*.nc
+*.e00
+*.E00
+*.mdb
+*.gdb/
+*.gdb.zip
+gshhg*.zip
+nadi1*.zip
+etopo_*.nc
+
+# intermediates
+*.npy
+__pycache__/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/
+.idea/

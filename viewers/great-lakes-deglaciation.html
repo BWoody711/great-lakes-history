@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Great Lakes since the ice — 17,000 BP to now</title>
+<style>
+  :root{
+    --slate:#12161a;
+    --slate-2:#1a1f25;
+    --till:#b6b4a3;
+    --till-hi:#c6c4b3;
+    --ice:#e8f0f3;
+    --ice-line:#a9c2cd;
+    --water:#24547d;
+    --water-t:#74a6c6;
+    --sea:#3d8a7e;
+    --outlet:#9d3b2f;
+    --ink:#1d2226;
+    --paper:#dcd8cb;
+    --paper-dim:#94918a;
+    --rule:#2c333a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--slate);color:var(--paper)}
+  body{
+    font:16px/1.55 "Iowan Old Style","Hoefler Text",Georgia,"Times New Roman",serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 72px}
+
+  header{margin-bottom:22px}
+  h1{
+    font-size:clamp(26px,4.4vw,42px);
+    line-height:1.06;
+    font-weight:400;
+    letter-spacing:-.015em;
+    margin:0 0 8px;
+  }
+  header p{
+    margin:0;max-width:62ch;color:var(--paper-dim);
+    font-size:15.5px;line-height:1.6;
+  }
+
+  /* ---- map ---- */
+  .mapframe{
+    position:relative;
+    border:1px solid var(--rule);
+    background:#0d1013;
+    overflow:hidden;
+  }
+  svg.map{display:block;width:100%;height:auto;background:var(--till)}
+  .reading{
+    position:absolute;top:0;left:0;
+    padding:12px 16px 14px;
+    background:linear-gradient(180deg,rgba(10,13,16,.82),rgba(10,13,16,0));
+    pointer-events:none;
+    width:100%;
+  }
+  .yr{
+    font:400 clamp(22px,3.4vw,32px)/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    letter-spacing:-.02em;color:#f2efe6;
+  }
+  .yr small{font-size:.5em;letter-spacing:.02em;color:var(--paper-dim);margin-left:.5em}
+  .stagename{
+    margin-top:6px;font-size:clamp(15px,2.2vw,19px);font-style:italic;color:#e9e4d6;
+  }
+
+  /* ---- scrubber / hydrograph ---- */
+  .scrub{margin-top:0;border:1px solid var(--rule);border-top:none;background:var(--slate-2);padding:14px 16px 8px}
+  .scrub-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:6px}
+  .scrub-head span{font-size:13.5px;color:var(--paper-dim);font-style:italic}
+  svg.hydro{display:block;width:100%;height:auto;overflow:visible}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;margin:2px 0 0;background:transparent;
+  }
+  input[type=range]:focus{outline:none}
+  input[type=range]:focus-visible{outline:2px solid #7fb4d6;outline-offset:6px}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--rule)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--rule)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:26px;margin-top:-12px;border-radius:2px;
+    background:#f0ece0;border:1px solid #6d7278;cursor:grab;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px;height:26px;border-radius:2px;background:#f0ece0;border:1px solid #6d7278;cursor:grab;
+  }
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0 10px}
+  button{
+    font:500 14px/1 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:#eee9dc;background:#232a31;border:1px solid #39424b;border-radius:3px;
+    padding:9px 14px;cursor:pointer;
+  }
+  button:hover{background:#2c343c}
+  button:focus-visible{outline:2px solid #7fb4d6;outline-offset:2px}
+  .step{padding:9px 11px}
+  .hint{font-size:13px;color:var(--paper-dim);font-style:italic;margin-left:auto}
+
+  /* ---- notes ---- */
+  .notes{display:grid;grid-template-columns:1.15fr .85fr;gap:0;border:1px solid var(--rule);border-top:none}
+  .col{padding:20px 22px}
+  .col + .col{border-left:1px solid var(--rule);background:#161a1f}
+  h2{
+    font-size:13px;font-weight:400;font-style:italic;color:var(--paper-dim);
+    margin:0 0 10px;letter-spacing:.01em;
+  }
+  .body p{margin:0 0 12px;font-size:16px;line-height:1.62;max-width:60ch}
+  .body p:last-child{margin-bottom:0}
+  ul.outlets{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  ul.outlets li{
+    font:400 13.5px/1 ui-sans-serif,system-ui,sans-serif;
+    border:1px solid #4a3730;color:#e6b9ae;background:#241c1a;
+    padding:6px 9px;border-radius:2px;
+  }
+  ul.outlets li.off{border-color:#333a41;color:#7d8288;background:transparent}
+  .contested li{margin-bottom:10px;font-size:15px;line-height:1.55}
+  .contested ul{margin:0;padding-left:18px}
+  .conf{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:var(--paper-dim);font-style:italic}
+  .conf .bar{flex:0 0 96px;height:5px;background:#2b323a;position:relative}
+  .conf .bar i{position:absolute;inset:0 auto 0 0;background:#8fb8a4;display:block}
+
+  /* ---- legend ---- */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:16px 22px;margin-top:18px;
+    font:400 13.5px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--paper-dim);
+  }
+  .legend span{display:flex;align-items:center;gap:7px}
+  .sw{width:16px;height:11px;border:1px solid rgba(0,0,0,.35);display:block}
+  footer{margin-top:26px;font-size:13.5px;color:#71767c;max-width:70ch;line-height:1.6;font-style:italic}
+
+  @media (max-width:760px){
+    .notes{grid-template-columns:1fr}
+    .col + .col{border-left:none;border-top:1px solid var(--rule)}
+    .hint{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>The Great Lakes since the ice</h1>
+  <p>Seventeen thousand years of shorelines, outlets and lake levels. Drag along the lake-level curve to move a century at a time. Shapes are schematic reconstructions, drawn to show configuration and drainage rather than surveyed shoreline position.</p>
+</header>
+
+<div class="mapframe">
+  <svg class="map" id="map" viewBox="0 0 1000 700" role="img" aria-label="Map of the Great Lakes region at the selected date"></svg>
+  <div class="reading">
+    <div class="yr" id="yr">17,000 <small>years before present</small></div>
+    <div class="stagename" id="stagename">Ice over every basin</div>
+  </div>
+</div>
+
+<div class="scrub">
+  <div class="scrub-head">
+    <span>Lake level in metres above present sea level — Huron/Michigan, Erie and Ontario basins</span>
+  </div>
+  <svg class="hydro" id="hydro" viewBox="0 0 1000 190" aria-hidden="true"></svg>
+  <input type="range" id="slider" min="0" max="17000" step="100" value="17000" aria-label="Years before present">
+  <div class="controls">
+    <button id="play">Play</button>
+    <button class="step" id="back" aria-label="Back one century">← century</button>
+    <button class="step" id="fwd" aria-label="Forward one century">century →</button>
+    <span class="hint">Arrow keys step by century once the slider has focus.</span>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="col body">
+    <h2>What the evidence supports</h2>
+    <div id="established"></div>
+    <ul class="outlets" id="outlets"></ul>
+  </div>
+  <div class="col contested">
+    <h2>What is still argued over</h2>
+    <ul id="contested"></ul>
+    <div class="conf"><span class="bar"><i id="confbar" style="width:60%"></i></span><span id="conftext">chronology reasonably well constrained</span></div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><b class="sw" style="background:#e8f0f3"></b>Laurentide ice</span>
+  <span><b class="sw" style="background:#24547d"></b>Lake water</span>
+  <span><b class="sw" style="background:#74a6c6"></b>Proglacial or transient lake</span>
+  <span><b class="sw" style="background:#3d8a7e"></b>Champlain Sea (marine)</span>
+  <span><b class="sw" style="background:#b6b4a3"></b>Land</span>
+  <span><b class="sw" style="background:transparent;border:1px dashed #4a4f45"></b>Modern shoreline, for reference</span>
+  <span><b class="sw" style="background:#9d3b2f;border:none;height:3px"></b>Active outlet</span>
+</div>
+
+<footer>
+  Dates are calendar years before present and carry uncertainties of several hundred years for most stages, more for the early Holocene lowstands. Levels are given at the south end of each basin and are not corrected for the differential isostatic tilt that has since raised the northern shorelines — a strandline mapped at 184 m near Port Huron sits well above 300 m near Sudbury.
+</footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- projection ---------- */
+const LON0=-93, LON1=-73, LATN=50, LATS=40, W=1000, H=700;
+const px = lon => (lon-LON0)/(LON1-LON0)*W;
+const py = lat => (LATN-lat)/(LATN-LATS)*H;
+const KM = 0.63;                       // svg units per km
+const P  = ll => ll.map(p=>[px(p[0]),py(p[1])]);
+
+/* ---------- geometry helpers ---------- */
+function area(p){let a=0;for(let i=0,n=p.length;i<n;i++){const q=p[(i+1)%n];a+=p[i][0]*q[1]-q[0]*p[i][1];}return a/2;}
+function centroid(p){let x=0,y=0;for(const q of p){x+=q[0];y+=q[1];}return [x/p.length,y/p.length];}
+
+function offsetOnce(p,d,s){
+  const n=p.length,q=[];
+  for(let i=0;i<n;i++){
+    const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n];
+    const n1=nrm(a,b), n2=nrm(b,c);
+    let vx=n1[0]+n2[0], vy=n1[1]+n2[1];
+    const m=Math.hypot(vx,vy)||1; vx/=m; vy/=m;
+    q.push([b[0]+s*vx*d, b[1]+s*vy*d]);
+  }
+  return q;
+  function nrm(u,v){const dx=v[0]-u[0],dy=v[1]-u[1],m=Math.hypot(dx,dy)||1;return [dy/m,-dx/m];}
+}
+function cleanup(p,orig){
+  // drop vertices where the edge direction has reversed (self-intersection from offsetting)
+  for(let pass=0;pass<3;pass++){
+    const n=p.length; if(n<8) break;
+    const kill=new Array(n).fill(false);
+    for(let i=0;i<n;i++){
+      const j=(i+1)%n;
+      const e=[orig[j][0]-orig[i][0], orig[j][1]-orig[i][1]];
+      const f=[p[j][0]-p[i][0], p[j][1]-p[i][1]];
+      if(e[0]*f[0]+e[1]*f[1] < 0){ kill[i]=true; kill[j]=true; }
+    }
+    const q=[],o=[];
+    for(let i=0;i<n;i++) if(!kill[i]){q.push(p[i]);o.push(orig[i]);}
+    if(q.length===n||q.length<8) break;
+    p=q; orig=o;
+  }
+  return p;
+}
+function offsetPoly(p,dKm){
+  if(!dKm) return p;
+  const d=Math.abs(dKm)*KM, want=dKm>0;
+  let s = area(p)>0 ? 1 : -1;
+  let q = offsetOnce(p,d,s);
+  const grew = Math.abs(area(q))>Math.abs(area(p));
+  if(grew!==want) q = offsetOnce(p,d,-s);
+  return cleanup(q,p);
+}
+
+/* smooth closed/open polyline via Catmull-Rom to cubic Bezier */
+function smoothPath(pts,closed){
+  const n=pts.length; if(n<3) return "";
+  const at=i=> closed ? pts[(i+n)%n] : pts[Math.max(0,Math.min(n-1,i))];
+  let d=`M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  const last = closed ? n : n-1;
+  for(let i=0;i<last;i++){
+    const p0=at(i-1),p1=at(i),p2=at(i+1),p3=at(i+2);
+    const k=0.78;
+    const c1=[p1[0]+k*(p2[0]-p0[0])/6, p1[1]+k*(p2[1]-p0[1])/6];
+    const c2=[p2[0]-k*(p3[0]-p1[0])/6, p2[1]-k*(p3[1]-p1[1])/6];
+    d+=`C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  if(closed) d+="Z";
+  return d;
+}
+
+/* ---------- base lake outlines (simplified, lon/lat) ---------- */
+const BASE = {
+  superior: P([[-92.10,46.75],[-91.30,46.95],[-90.60,47.35],[-89.90,47.90],[-89.20,48.10],[-88.60,48.55],[-88.00,48.85],
+    [-87.20,48.85],[-86.30,48.70],[-85.60,48.35],[-84.90,47.90],[-84.55,47.35],[-84.30,46.85],[-84.60,46.55],
+    [-85.40,46.70],[-86.40,46.60],[-86.90,46.45],[-87.60,46.60],[-88.05,46.85],[-88.50,47.35],[-88.90,47.15],
+    [-88.55,46.85],[-88.95,46.70],[-89.60,46.75],[-90.40,46.60],[-90.90,46.65],[-91.40,46.72]]),
+  michigan: P([[-87.60,41.65],[-86.90,41.62],[-86.35,41.90],[-86.20,42.60],[-86.30,43.20],[-86.45,43.90],[-86.40,44.40],
+    [-86.05,44.80],[-85.60,45.05],[-85.45,45.45],[-84.95,45.40],[-84.80,45.75],[-85.30,45.95],[-85.90,45.95],
+    [-86.60,45.85],[-87.15,45.75],[-87.30,45.55],[-87.70,45.45],[-88.00,44.95],[-87.62,44.68],[-87.35,45.02],
+    [-87.08,44.62],[-87.00,44.00],[-87.20,43.40],[-87.50,42.90]]),
+  huron: P([[-82.42,43.00],[-82.55,43.50],[-82.75,43.95],[-83.30,43.85],[-83.90,43.62],[-83.75,44.05],[-83.35,44.25],
+    [-83.30,44.75],[-83.45,45.30],[-84.10,45.55],[-84.75,45.75],[-84.20,46.05],[-83.50,46.10],[-82.80,46.05],
+    [-82.10,46.00],[-81.60,46.25],[-81.20,46.05],[-80.60,45.30],[-80.10,44.95],[-79.85,44.70],[-80.20,44.50],
+    [-80.50,44.58],[-80.32,44.95],[-81.28,45.22],[-81.70,44.75],[-81.75,44.20],[-81.70,43.70],[-81.90,43.30],
+    [-82.10,43.10]]),
+  erie: P([[-83.15,42.05],[-83.10,41.75],[-82.60,41.70],[-82.00,41.45],[-81.30,41.60],[-80.50,42.05],[-79.75,42.35],
+    [-79.05,42.55],[-79.10,42.85],[-79.90,42.85],[-80.55,42.62],[-81.30,42.65],[-81.90,42.30],[-82.50,41.95],
+    [-82.90,42.15]]),
+  ontario: P([[-79.20,43.28],[-79.80,43.30],[-79.72,43.66],[-79.20,43.66],[-78.30,43.90],[-77.60,44.12],[-76.90,44.12],
+    [-76.40,44.20],[-76.20,43.92],[-76.75,43.40],[-77.60,43.25],[-78.60,43.28]]),
+  stclair: P([[-82.75,42.30],[-82.55,42.45],[-82.60,42.62],[-82.85,42.62],[-83.00,42.45],[-82.95,42.30]])
+};
+
+/* custom shapes used for lowstands and special lakes */
+const CUSTOM = {
+  stanleyMain: P([[-82.60,43.35],[-82.90,43.90],[-82.60,44.50],[-82.10,45.00],[-81.62,45.18],[-81.42,45.00],
+    [-81.85,44.50],[-82.05,44.00],[-82.32,43.48]]),
+  stanleyNorth: P([[-83.70,45.62],[-84.05,45.92],[-83.20,46.00],[-82.40,45.92],[-81.85,45.90],[-81.72,45.62],[-82.55,45.58]]),
+  hough: P([[-81.30,45.20],[-80.90,45.38],[-80.42,45.02],[-80.12,44.80],[-80.38,44.66],[-80.72,44.92],[-81.08,45.02]]),
+  chippewa: P([[-87.00,43.20],[-87.20,43.90],[-87.00,44.50],[-86.70,44.90],[-86.32,44.98],[-86.14,44.70],
+    [-86.42,44.20],[-86.62,43.60],[-86.82,43.10]]),
+  erieLowEast: P([[-80.65,42.20],[-79.90,42.48],[-79.22,42.60],[-79.32,42.76],[-80.20,42.60],[-80.92,42.42],
+    [-81.42,42.40],[-81.52,42.24]]),
+  erieLowCentral: P([[-82.35,41.90],[-81.60,41.86],[-81.20,42.00],[-81.62,42.14],[-82.22,42.04]]),
+  frontenac: P([[-77.40,43.70],[-76.60,43.70],[-76.28,43.96],[-76.62,44.16],[-77.22,44.06],[-77.80,43.90]]),
+  champlain: P([[-76.30,45.40],[-75.60,45.58],[-74.60,45.62],[-73.40,45.74],[-73.00,45.95],[-73.00,44.55],
+    [-73.28,44.25],[-73.42,43.55],[-73.18,43.55],[-73.08,44.30],[-73.60,44.62],[-74.60,45.02],
+    [-75.60,45.10],[-76.20,45.10]]),
+  mackinac: P([[-84.92,45.58],[-84.66,45.92],[-85.10,46.02],[-85.32,45.70]]),
+  sault: P([[-84.62,46.42],[-84.18,46.52],[-84.06,46.20],[-84.50,46.14]])
+};
+
+/* ---------- outlets ---------- */
+const OUTLET = {
+  wabash:    {p:[-85.10,40.90], v:[-0.55,0.84],  n:"Wabash → Mississippi"},
+  chicago:   {p:[-87.75,41.72], v:[-0.72,0.69],  n:"Chicago → Illinois River"},
+  grand:     {p:[-85.90,42.95], v:[-0.99,0.14],  n:"Grand River, Michigan"},
+  ubly:      {p:[-83.60,43.72], v:[-0.86,0.51],  n:"Ubly / Saginaw"},
+  porthuron: {p:[-82.44,42.95], v:[0.10,0.99],   n:"Port Huron / St. Clair"},
+  niagara:   {p:[-79.05,43.09], v:[0.92,0.39],   n:"Niagara"},
+  rome:      {p:[-75.70,43.25], v:[0.70,0.71],   n:"Rome / Mohawk"},
+  stlaw:     {p:[-75.20,44.72], v:[0.95,0.31],   n:"St. Lawrence"},
+  kirkfield: {p:[-78.85,44.55], v:[0.72,0.69],   n:"Kirkfield / Trent"},
+  northbay:  {p:[-79.45,46.32], v:[0.95,0.25],   n:"North Bay / Mattawa"},
+  sault:     {p:[-84.35,46.50], v:[0.60,0.80],   n:"Sault"}
+};
+const OUTLET_ORDER = ["wabash","chicago","grand","ubly","porthuron","kirkfield","northbay","sault","niagara","rome","stlaw"];
+
+/* ---------- reference places ---------- */
+const PLACES = [
+  [-87.63,41.88,"Chicago"],[-83.05,42.33,"Detroit"],[-79.38,43.65,"Toronto"],[-78.88,42.89,"Buffalo"],
+  [-92.10,46.79,"Duluth"],[-84.35,46.50,"Sault"],[-79.46,46.31,"North Bay"],[-75.70,45.42,"Ottawa"],
+  [-73.57,45.50,"Montréal"],[-81.25,42.98,"London"]
+];
+
+/* ---------- ice margin samples: latitudes at lon -93 … -73 ---------- */
+const ICE_LON=[]; for(let l=-93;l<=-73;l++) ICE_LON.push(l);
+const GONE = ICE_LON.map(()=>51.5);
+
+/* ---------- stages ---------- */
+const S = [
+ {t:17.0, name:"Ice over every basin", conf:.55,
+  ice:[41.6,41.4,41.2,41.0,40.6,40.2,40.4,40.8,41.0,40.6,39.7,39.6,40.2,40.9,41.3,41.5,41.6,41.7,41.8,41.9,42.0],
+  lakes:{}, outlets:[], lv:{},
+  est:"Late in the last glacial maximum the Laurentide ice sheet still fills all five basins and spills south of them into Ohio, Indiana and Illinois. The lobes are already distinct — Erie, Saginaw, Michigan, Green Bay — because they are steered by the bedrock troughs that will become the lakes. Meltwater leaves the region southward, through the Wabash, Illinois and upper Mississippi valleys.",
+  cont:["How much of each basin is glacially excavated and how much is an inherited preglacial river valley. The Huron and Georgian Bay lobes are the hardest to attribute.",
+        "Ice thickness and load history, which set the isostatic depression everything downstream depends on."]},
+
+ {t:16.0, name:"Lake Maumee — first water in the Erie basin", conf:.6,
+  ice:[43.6,43.2,42.8,42.4,42.0,41.7,41.6,41.7,42.0,42.0,41.5,41.1,41.2,41.6,42.0,42.2,42.4,42.6,42.8,43.0,43.2],
+  lakes:{erie:{base:"erie",off:18,t:1,label:"Lake Maumee"}, michigan:{base:"michigan",off:12,t:1,label:"Lake Chicago"}},
+  outlets:["wabash","chicago"], lv:{erie:244},
+  est:"The ice front pulls back off the Fort Wayne moraine and the first proglacial lake forms in the southwestern corner of the Erie basin, dammed between the moraine and the ice. It drains southwest to the Wabash. In the Michigan basin, water ponds at the south end and escapes down the Illinois valley.",
+  cont:["Maumee has several level phases; the number of them and their order are argued from strandlines that are hard to correlate around the ice-marginal loop.",
+        "Whether the Wabash and Illinois outlets were ever active at the same time."]},
+
+ {t:15.0, name:"Lake Arkona — lowered, briefly confluent", conf:.5,
+  ice:[44.4,44.0,43.6,43.3,43.0,42.7,42.6,42.7,42.9,43.0,42.6,42.0,41.9,42.2,42.5,42.7,42.9,43.1,43.3,43.5,43.7],
+  lakes:{erie:{base:"erie",off:14,t:1,label:"Lake Arkona"}, huron:{base:"huron",off:4,t:1}, michigan:{base:"michigan",off:16,t:1,label:"Lake Chicago"}},
+  outlets:["chicago","grand"], lv:{erie:216,huron:216},
+  est:"Retreat opens lower ground to the northwest and the lake drops about thirty metres from Maumee to Arkona, briefly joining the Erie, Saginaw and Michigan basins into one water body draining across Michigan.",
+  cont:["The Arkona level is one of the least secure in the sequence; correlating its beaches across three basins depends on the rebound model used to untilt them.",
+        "A readvance re-dams the system afterwards, but its extent is only loosely mapped."]},
+
+ {t:14.5, name:"Lake Whittlesey — the Ubly channel", conf:.65,
+  ice:[45.2,44.9,44.6,44.3,44.0,43.8,43.7,43.8,44.0,44.1,43.6,42.9,42.6,42.8,43.0,43.2,43.4,43.6,43.8,44.0,44.2],
+  lakes:{erie:{base:"erie",off:18,t:1,label:"Lake Whittlesey"}, huron:{base:"huron",off:8,t:1}, michigan:{base:"michigan",off:16,t:1,label:"Lake Chicago"}},
+  outlets:["ubly","chicago"], lv:{erie:225,huron:225},
+  est:"A readvance of the Huron lobe raises the lake again. Whittlesey drains through the Ubly channel across the Thumb of Michigan into the Saginaw lowland and on to the Grand River. Its beach ridge is the most continuous and best mapped of all the Erie-basin strandlines.",
+  cont:["Timing of the readvance that impounded Whittlesey, and how long the Ubly channel carried flow."]},
+
+ {t:14.0, name:"Lake Warren — draining west across Michigan", conf:.65,
+  ice:[45.9,45.6,45.3,45.0,44.7,44.5,44.4,44.5,44.7,44.8,44.3,43.6,43.2,43.2,43.3,43.5,43.7,43.9,44.1,44.4,44.6],
+  lakes:{erie:{base:"erie",off:22,t:1,label:"Lake Warren"}, huron:{base:"huron",off:12,t:1}, michigan:{base:"michigan",off:16,t:1,label:"Lake Chicago"}},
+  outlets:["grand","chicago"], lv:{erie:210,huron:210},
+  est:"Warren is the largest of the Erie-basin proglacial lakes, reaching well into southern Ontario and joining the Huron basin. It uses the Grand River route across Michigan. Its shoreline, and the lower Wayne and Lundy levels that follow, record a stepwise fall as successively lower cross-Michigan channels open.",
+  cont:["Warren, Wayne, Grafton and Lundy make a crowded sequence of closely spaced levels; which are true lake stages and which are storm or ice-marginal features is not fully resolved."]},
+
+ {t:13.5, name:"Lake Iroquois and early Lake Algonquin", conf:.75,
+  ice:[46.8,46.5,46.2,45.9,45.6,45.4,45.3,45.4,45.6,45.7,45.3,44.7,44.4,44.3,44.2,44.3,44.4,44.6,44.5,44.7,45.0],
+  lakes:{ontario:{base:"ontario",off:24,t:1,label:"Lake Iroquois"}, erie:{base:"erie",off:2,t:1,label:"early Lake Erie"},
+         huron:{base:"huron",off:18,t:1,label:"Lake Algonquin"}, michigan:{base:"michigan",off:16,t:1},
+         superior:{base:"superior",off:-8,t:1}, mackinac:{custom:"mackinac",t:1}},
+  outlets:["rome","niagara","porthuron","chicago"], lv:{erie:189,huron:184,ontario:110},
+  est:"Ice clears the north shore of the Ontario basin but still plugs the St. Lawrence at Covey Hill, so Lake Iroquois stands roughly forty metres above modern Lake Ontario and drains east across the Mohawk valley at Rome, New York. Its bluff is still a landscape feature from Toronto to Rochester. Niagara Falls has begun cutting its gorge. In the upper lakes, early Lake Algonquin joins the Huron and Michigan basins.",
+  cont:["Whether the Rome sill was cut progressively or in one event.",
+        "The elevation and duration of the pre-Iroquois higher levels behind the same dam."]},
+
+ {t:13.0, name:"Iroquois drains — the Champlain Sea", conf:.7,
+  ice:[47.6,47.3,47.0,46.7,46.4,46.2,46.1,46.2,46.4,46.5,46.1,45.6,45.4,45.4,45.5,45.6,45.8,46.0,46.2,46.4,46.6],
+  lakes:{ontario:{custom:"frontenac",t:1,label:"Lake Frontenac"}, champlain:{custom:"champlain",t:1,sea:1,label:"Champlain Sea"},
+         erie:{base:"erie",off:-4,t:1}, huron:{base:"huron",off:16,t:1,label:"Lake Algonquin"},
+         michigan:{base:"michigan",off:14,t:1}, superior:{base:"superior",off:-6,t:1}, mackinac:{custom:"mackinac",t:1}},
+  outlets:["kirkfield","porthuron","chicago","stlaw"], lv:{erie:160,huron:175,ontario:30},
+  est:"Ice leaves the St. Lawrence lowland and the Ontario basin empties catastrophically to a lowstand far below present. The land there is still isostatically depressed below sea level, so the Atlantic floods in as the Champlain Sea, leaving marine shells and whale bones in the Ottawa valley. In the upper lakes the Kirkfield outlet across the Trent lowland opens and Algonquin falls to a lower phase.",
+  cont:["The depth and duration of the Ontario-basin lowstand, and whether it was closed or overflowing.",
+        "Whether Kirkfield fully captured the upper lakes' discharge or shared it with Port Huron."]},
+
+ {t:12.6, name:"Main Lake Algonquin", conf:.75,
+  ice:[47.2,47.0,46.7,46.4,46.1,45.9,45.8,45.9,46.0,46.0,45.7,45.4,45.3,45.4,45.6,45.8,46.0,46.2,46.4,46.6,46.8],
+  lakes:{huron:{base:"huron",off:20,t:1,label:"Lake Algonquin"}, michigan:{base:"michigan",off:18,t:1},
+         superior:{base:"superior",off:4,t:1}, mackinac:{custom:"mackinac",t:1}, sault:{custom:"sault",t:1},
+         ontario:{base:"ontario",off:-22,t:1,label:"early Lake Ontario"},
+         champlain:{custom:"champlain",t:1,sea:1,label:"Champlain Sea"}, erie:{base:"erie",off:-6,t:1}},
+  outlets:["porthuron","chicago","niagara","stlaw"], lv:{erie:155,huron:184,ontario:40},
+  est:"A readvance closes the northern outlets again and main Lake Algonquin fills the Huron, Michigan and Superior basins as one lake at about 184 m, using Port Huron and Chicago. This is the reference datum for the whole upper-lakes tilt problem: the Algonquin shoreline is horizontal in the south and rises steadily northeastward, and untilting it is how rebound rates are estimated.",
+  cont:["The hinge line position — where the Algonquin shoreline stops being horizontal — is drawn differently by different workers.",
+        "How much of the Chicago outlet's discharge was real versus inferred from channel size."]},
+
+ {t:11.5, name:"Post-Algonquin fall through northern outlets", conf:.4,
+  ice:[48.6,48.4,48.1,47.8,47.5,47.3,47.2,47.2,47.3,47.4,47.2,46.8,46.6,46.6,46.7,46.9,47.1,47.3,47.5,47.7,47.9],
+  lakes:{huron:{base:"huron",off:8,t:1,label:"post-Algonquin lakes"}, michigan:{base:"michigan",off:6,t:1},
+         superior:{base:"superior",off:-6,t:1}, mackinac:{custom:"mackinac",t:1},
+         ontario:{base:"ontario",off:-16,t:1}, champlain:{custom:"champlain",t:1,sea:1,label:"Champlain Sea"},
+         erie:{base:"erie",off:-10,t:1}},
+  outlets:["kirkfield","porthuron","niagara","stlaw"], lv:{erie:150,huron:170,ontario:50},
+  est:"As the ice front withdraws, successively lower channels across the Ontario upland are uncovered and the upper lakes drop in steps. The named phases — Wyebridge, Penetang, Cedar Point, Payette, Sheguiandah — are defined from tilted beach ridges around Georgian Bay.",
+  cont:["This is the weakest link in the sequence. The number of distinct phases, their correlation between basins, and their ages all depend on the rebound model used to project the tilted strandlines, so the reconstruction and the model are not independent."]},
+
+ {t:10.5, name:"North Bay opens — the great lowstands", conf:.5,
+  ice:[49.4,49.2,49.0,48.7,48.4,48.2,48.1,48.1,48.2,48.3,48.1,47.8,47.6,47.6,47.7,47.9,48.1,48.3,48.5,48.7,48.9],
+  lakes:{huronS:{custom:"stanleyMain",t:1,label:"Lake Stanley"}, huronN:{custom:"stanleyNorth",t:1},
+         hough:{custom:"hough",t:1,label:"Lake Hough"}, michigan:{custom:"chippewa",t:1,label:"Lake Chippewa"},
+         superior:{base:"superior",off:-20,t:1,label:"Lake Houghton"},
+         erieE:{custom:"erieLowEast",t:1,label:"early Lake Erie"}, erieC:{custom:"erieLowCentral",t:1},
+         ontario:{base:"ontario",off:-10,t:1}, champlain:{custom:"champlain",t:1,sea:1}},
+  outlets:["northbay","niagara","stlaw"], lv:{erie:145,huron:80,ontario:60},
+  est:"The Mattawa–Ottawa route through North Bay deglaciates. It is far lower than Port Huron, and the upper lakes fall catastrophically — Huron by roughly a hundred metres. The basin splits at the Mackinac sill into Lake Stanley in Huron, Lake Chippewa in Michigan and Lake Hough in Georgian Bay. The Alpena–Amberley ridge between Alpena and Point Clark is dry land, and drowned tree stumps and stone caribou-drive structures survive on it. Erie is reduced to its deeper eastern and central basins.",
+  cont:["Whether the lowstand lakes were hydrologically closed, with levels drawn down below their outlets by evaporation, or still overflowing. Ostracode assemblages, isotopes and seismic stratigraphy give conflicting answers.",
+        "The elevation of Lake Hough is particularly poorly pinned.",
+        "Where Lake Agassiz's discharge went during this interval — Superior and the St. Lawrence, the Mackenzie to the Arctic, or Hudson Bay."]},
+
+ {t:9.5, name:"Mattawa phases and outburst floods", conf:.45,
+  ice:[50.1,50.1,50.0,50.0,49.9,49.9,49.9,49.9,50.0,50.0,50.0,50.0,50.0,50.1,50.1,50.2,50.2,50.3,50.3,50.4,50.4],
+  lakes:{huron:{base:"huron",off:-14,t:1,label:"Mattawa phases"}, michigan:{base:"michigan",off:-16,t:1},
+         superior:{base:"superior",off:-12,t:1}, erie:{base:"erie",off:-12,t:1},
+         ontario:{base:"ontario",off:-8,t:1}, champlain:{custom:"champlain",t:1,sea:1}},
+  outlets:["northbay","niagara","stlaw"], lv:{erie:150,huron:110,ontario:65},
+  est:"Repeated surges of glacial meltwater from Lake Agassiz and Lake Ojibway pass through the upper lakes and raise them well above the Stanley lowstand for short intervals. The Mattawa channels are scoured to sizes that require discharges far larger than anything the modern system produces.",
+  cont:["How many Mattawa high phases there were, and their levels.",
+        "Which surges routed through the Great Lakes at all, and whether any of them triggered the Younger Dryas cooling — the routing question is still genuinely open."]},
+
+ {t:8.2, name:"Low upper lakes, rising Ontario", conf:.5,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:-18,t:1,label:"Lake Stanley"}, michigan:{base:"michigan",off:-18,t:1,label:"Lake Chippewa"},
+         superior:{base:"superior",off:-9,t:1}, erie:{base:"erie",off:-8,t:1}, ontario:{base:"ontario",off:-4,t:1}},
+  outlets:["northbay","niagara","stlaw"], lv:{erie:155,huron:100,ontario:68},
+  est:"The last ice leaves the Hudson Bay watershed and the final Agassiz–Ojibway drainage goes north, not through the lakes. The upper lakes remain low. Ontario and Erie are rising as their outlets and basins rebound, and the Niagara River's flow is far weaker than today because the upper lakes are not routing through it.",
+  cont:["Erie's early Holocene levels are much less constrained than Huron's: the basin is shallow, sedimentation is high and cores are few.",
+        "Whether the 8.2 ka event's freshwater pulse is recorded in the lakes at all."]},
+
+ {t:6.0, name:"Nipissing transgression under way", conf:.6,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:-7,t:1}, michigan:{base:"michigan",off:-7,t:1}, superior:{base:"superior",off:-4,t:1},
+         erie:{base:"erie",off:-3,t:1}, ontario:{base:"ontario",off:-1,t:1}},
+  outlets:["northbay","porthuron","niagara","stlaw"], lv:{erie:165,huron:140,ontario:72},
+  est:"The North Bay outlet sits close to the centre of maximum rebound and rises faster than the southern sills. The upper lakes are pushed steadily back up their own basins, drowning the lowstand shorelines and re-flooding the Alpena–Amberley ridge. This is a transgression driven by the outlet rising rather than by any change in water supply.",
+  cont:["Whether the transgression was smooth or interrupted, and how uplift rates at North Bay varied through it."]},
+
+ {t:4.7, name:"The Nipissing highstand", conf:.7,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:8,t:1,label:"Lake Nipissing"}, michigan:{base:"michigan",off:8,t:1},
+         superior:{base:"superior",off:6,t:1}, mackinac:{custom:"mackinac",t:1}, sault:{custom:"sault",t:1},
+         erie:{base:"erie",off:2,t:1}, ontario:{base:"ontario",off:1,t:1}},
+  outlets:["northbay","porthuron","chicago","niagara","stlaw"], lv:{erie:172,huron:184,ontario:74},
+  est:"The upper lakes reach roughly 184 m again and are once more a single water body. For a short interval three outlets are active at once — North Bay, Port Huron and Chicago. The Nipissing beach is the most prominent raised shoreline around the upper lakes and is the datum most Holocene rebound work is hung on.",
+  cont:["One-stage or two-stage transgression, and the exact date of the peak.",
+        "Whether Chicago carried meaningful discharge or was only marginally overtopped."]},
+
+ {t:3.5, name:"Algoma phase — Port Huron takes over", conf:.7,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:4,t:1,label:"Lake Algoma"}, michigan:{base:"michigan",off:4,t:1},
+         superior:{base:"superior",off:3,t:1}, mackinac:{custom:"mackinac",t:1},
+         erie:{base:"erie",off:1,t:1}, ontario:{base:"ontario",off:0,t:1}},
+  outlets:["porthuron","niagara","stlaw"], lv:{erie:173,huron:179,ontario:74},
+  est:"Continued uplift abandons North Bay and Chicago. All upper-lakes discharge concentrates at Port Huron, which incises its outlet channel, and the lakes fall a few metres to the Algoma level and then toward modern.",
+  cont:["Whether the fall from Nipissing to Algoma was gradual incision or included a rapid downcutting event.",
+        "How much of the Lake Michigan beach-ridge record is climate signal versus rebound and sediment supply — the same ridges are read both ways."]},
+
+ {t:2.0, name:"Modern configuration established", conf:.85,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:1,t:1}, michigan:{base:"michigan",off:1,t:1}, superior:{base:"superior",off:1,t:1},
+         erie:{base:"erie",off:0,t:1}, ontario:{base:"ontario",off:0,t:1}, stclair:{base:"stclair",off:0,t:1}},
+  outlets:["sault","porthuron","niagara","stlaw"], lv:{erie:174,huron:177,ontario:75},
+  est:"Superior separates hydraulically at the Sault as its outlet rebounds above the Huron–Michigan level, and the system takes the form it has today: Superior at 183 m, Michigan–Huron at 176 m as one hydraulic lake, Erie at 174 m, Ontario at 75 m.",
+  cont:["Little about the configuration itself. The open questions are now rates rather than shapes."]},
+
+ {t:0.05, name:"Today, still tilting", conf:.9,
+  ice:GONE,
+  lakes:{huron:{base:"huron",off:0,t:1}, michigan:{base:"michigan",off:0,t:1}, superior:{base:"superior",off:0,t:1},
+         erie:{base:"erie",off:0,t:1}, ontario:{base:"ontario",off:0,t:1}, stclair:{base:"stclair",off:0,t:1}},
+  outlets:["sault","porthuron","niagara","stlaw"], lv:{erie:174,huron:176,ontario:75},
+  est:"Differential rebound continues at a few tenths of a millimetre per year per hundred kilometres. Each basin is slowly tipping toward its southwest corner, so south-shore river mouths in Ontario and Michigan are drowning while northern shorelines emerge. Regulation at the Sault and the Long Sault dam now overprints the natural outlet hydraulics on Superior and Ontario.",
+  cont:["Mantle viscosity structure, forebulge collapse and ice-load history trade off against each other in rebound models, so published differential tilt rates for individual outlet pairs still differ by margins that matter over a century.",
+        "How much lakebed sediment is being actively reworked by modern currents rather than simply draped as relict glacial material — one of the weakest links in the sediment-budget story."]}
+];
+S.sort((a,b)=>b.t-a.t);
+
+/* ---------- render ---------- */
+const NS="http://www.w3.org/2000/svg";
+const map=document.getElementById("map");
+function el(n,a){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+
+// static defs + base layers
+map.innerHTML = `
+<defs>
+  <pattern id="icetex" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+    <rect width="14" height="14" fill="#e8f0f3"/>
+    <circle cx="3" cy="3" r="1.05" fill="#c2d6df"/>
+    <circle cx="10" cy="9" r="0.85" fill="#cfe0e7"/>
+  </pattern>
+  <pattern id="landtex" width="9" height="9" patternUnits="userSpaceOnUse">
+    <rect width="9" height="9" fill="#b6b4a3"/>
+    <circle cx="2" cy="2" r="0.55" fill="#aeac9b"/>
+  </pattern>
+  <filter id="soft"><feGaussianBlur stdDeviation="1.1"/></filter>
+</defs>
+<rect width="1000" height="700" fill="url(#landtex)"/>
+<g id="grat"></g>
+<g id="ref"></g>
+<g id="water"></g>
+<g id="ice"></g>
+<g id="places"></g>
+<g id="outlets"></g>
+<g id="labels"></g>`;
+
+// graticule
+{
+  const g=map.querySelector("#grat");
+  for(let lon=-92;lon<=-74;lon+=2){
+    g.appendChild(el("line",{x1:px(lon),y1:0,x2:px(lon),y2:H,stroke:"#a7a594",'stroke-width':.7,'stroke-dasharray':"1 6"}));
+  }
+  for(let lat=41;lat<=49;lat+=1){
+    g.appendChild(el("line",{x1:0,y1:py(lat),x2:W,y2:py(lat),stroke:"#a7a594",'stroke-width':.7,'stroke-dasharray':"1 6"}));
+  }
+}
+// modern shoreline reference
+{
+  const g=map.querySelector("#ref");
+  for(const k of ["superior","michigan","huron","erie","ontario"]){
+    g.appendChild(el("path",{d:smoothPath(BASE[k],true),fill:"none",stroke:"#4f5347",'stroke-width':1,'stroke-dasharray':"5 5",opacity:.75}));
+  }
+}
+// place ticks
+{
+  const g=map.querySelector("#places");
+  for(const [lon,lat,nm] of PLACES){
+    const x=px(lon),y=py(lat);
+    g.appendChild(el("circle",{cx:x,cy:y,r:2,fill:"#4a4e42"}));
+    const t=el("text",{x:x+5,y:y+3.5,fill:"#585c4f","font-size":11,"font-family":"Georgia,serif"});
+    t.textContent=nm; g.appendChild(t);
+  }
+}
+
+const gWater=map.querySelector("#water"), gIce=map.querySelector("#ice"),
+      gOut=map.querySelector("#outlets"), gLab=map.querySelector("#labels");
+
+function shapeFor(spec){
+  if(spec.custom) return CUSTOM[spec.custom];
+  return offsetPoly(BASE[spec.base], spec.off||0);
+}
+
+function drawWater(spec,opacity,offOverride){
+  const s = spec.custom ? CUSTOM[spec.custom]
+          : offsetPoly(BASE[spec.base], offOverride!==undefined?offOverride:(spec.off||0));
+  if(!s||s.length<4) return null;
+  const off = offOverride!==undefined?offOverride:(spec.off||0);
+  const transient = spec.sea ? false : (!!spec.custom || Math.abs(off)>2);
+  const fill = spec.sea ? "var(--sea)" : (transient ? "var(--water-t)" : "var(--water)");
+  const p=el("path",{d:smoothPath(s,true),fill:fill,opacity:opacity,stroke:"#12303f","stroke-width":.8});
+  gWater.appendChild(p);
+  return s;
+}
+
+function iceLats(a,b,t){
+  return a.map((v,i)=>v+(b[i]-v)*t);
+}
+function drawIce(lats){
+  gIce.innerHTML="";
+  const pts = ICE_LON.map((lon,i)=>[px(lon),py(lats[i])]);
+  if(pts.every(p=>p[1]<-30)) return;
+  let d = smoothPath(pts,false);
+  d += `L${W+40},${py(lats[lats.length-1])} L${W+40},-60 L-40,-60 L-40,${py(lats[0])} Z`;
+  gIce.appendChild(el("path",{d:d,fill:"url(#icetex)",stroke:"none",opacity:.97}));
+  gIce.appendChild(el("path",{d:smoothPath(pts,false),fill:"none",stroke:"#8fb0bf","stroke-width":1.6}));
+}
+
+function drawOutlets(active){
+  gOut.innerHTML="";
+  for(const k of OUTLET_ORDER){
+    if(active.indexOf(k)<0) continue;
+    const o=OUTLET[k], x=px(o.p[0]), y=py(o.p[1]);
+    const L=30, ex=x+o.v[0]*L, ey=y+o.v[1]*L;
+    gOut.appendChild(el("line",{x1:x,y1:y,x2:ex,y2:ey,stroke:"var(--outlet)","stroke-width":3.2,"stroke-linecap":"round"}));
+    const ang=Math.atan2(o.v[1],o.v[0]), s=7.5;
+    const p1=[ex+Math.cos(ang)*s*1.5, ey+Math.sin(ang)*s*1.5];
+    const p2=[ex+Math.cos(ang+2.5)*s, ey+Math.sin(ang+2.5)*s];
+    const p3=[ex+Math.cos(ang-2.5)*s, ey+Math.sin(ang-2.5)*s];
+    gOut.appendChild(el("polygon",{points:`${p1} ${p2} ${p3}`,fill:"var(--outlet)"}));
+    gOut.appendChild(el("circle",{cx:x,cy:y,r:3.4,fill:"#fff",stroke:"var(--outlet)","stroke-width":2}));
+  }
+}
+
+function drawLabels(items,lats){
+  gLab.innerHTML="";
+  for(const it of items){
+    const [x,y]=centroid(it.pts);
+    // suppress if buried under ice
+    const lon = LON0 + x/W*(LON1-LON0);
+    const idx = Math.max(0,Math.min(ICE_LON.length-1,Math.round(lon-LON0)));
+    const lat = LATN - y/H*(LATN-LATS);
+    if(lat > lats[idx]-0.15) continue;
+    const t=el("text",{x:x,y:y,fill:"#f4f7f9","font-size":15,"font-style":"italic",
+      "font-family":"Georgia,serif","text-anchor":"middle",opacity:it.op,
+      stroke:"#12303f","stroke-width":3,"paint-order":"stroke"});
+    t.textContent=it.label; gLab.appendChild(t);
+  }
+}
+
+/* ---------- hydrograph ---------- */
+const hy=document.getElementById("hydro");
+const HW=1000,HH=190,PADL=44,PADR=14,PADT=12,PADB=26;
+const hx = ka => PADL + (17.0-ka)/17.0*(HW-PADL-PADR);
+const hyv= m  => PADT + (260-m)/260*(HH-PADT-PADB);
+const SERIES=[
+  {k:"huron",   c:"#7fb6dc", n:"Huron / Michigan"},
+  {k:"erie",    c:"#c9a24a", n:"Erie"},
+  {k:"ontario", c:"#7fbfa8", n:"Ontario"}
+];
+function buildHydro(){
+  let h=`<g>`;
+  for(let m=0;m<=250;m+=50){
+    h+=`<line x1="${PADL}" y1="${hyv(m)}" x2="${HW-PADR}" y2="${hyv(m)}" stroke="#2b323a" stroke-width="1"/>`;
+    h+=`<text x="${PADL-8}" y="${hyv(m)+4}" fill="#71767c" font-size="11" text-anchor="end" font-family="ui-monospace,monospace">${m}</text>`;
+  }
+  for(const s of S){
+    h+=`<line x1="${hx(s.t)}" y1="${PADT}" x2="${hx(s.t)}" y2="${HH-PADB}" stroke="#232a31" stroke-width="1"/>`;
+  }
+  for(const ka of [15,12.5,10,7.5,5,2.5,0]){
+    h+=`<text x="${hx(ka)}" y="${HH-8}" fill="#71767c" font-size="11" text-anchor="middle" font-family="ui-monospace,monospace">${ka===0?"now":ka.toFixed(1)+" ka"}</text>`;
+  }
+  for(const s of SERIES){
+    let d="",open=false;
+    for(const st of S){
+      const v=st.lv[s.k];
+      if(v==null){open=false;continue;}
+      d += (open?"L":"M") + hx(st.t).toFixed(1)+","+hyv(v).toFixed(1)+" ";
+      open=true;
+    }
+    h+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2.2" stroke-linejoin="round"/>`;
+    for(const st of S){ const v=st.lv[s.k]; if(v!=null)
+      h+=`<circle cx="${hx(st.t).toFixed(1)}" cy="${hyv(v).toFixed(1)}" r="2.6" fill="${s.c}"/>`; }
+  }
+  let lx=PADL+8;
+  for(const s of SERIES){
+    h+=`<rect x="${lx}" y="${PADT+2}" width="14" height="3" fill="${s.c}"/>`;
+    h+=`<text x="${lx+19}" y="${PADT+8}" fill="#9aa0a6" font-size="11.5" font-family="ui-sans-serif,system-ui,sans-serif">${s.n}</text>`;
+    lx += 30 + s.n.length*6.6;
+  }
+  h+=`<line id="head" x1="0" y1="${PADT-4}" x2="0" y2="${HH-PADB}" stroke="#f0ece0" stroke-width="1.6"/>`;
+  h+=`<circle id="headdot" cx="0" cy="${PADT-4}" r="3.4" fill="#f0ece0"/></g>`;
+  hy.innerHTML=h;
+}
+buildHydro();
+const head=hy.querySelector("#head"), headdot=hy.querySelector("#headdot");
+
+/* ---------- state ---------- */
+const yrEl=document.getElementById("yr"), nameEl=document.getElementById("stagename"),
+      estEl=document.getElementById("established"), contEl=document.getElementById("contested"),
+      outEl=document.getElementById("outlets"), confBar=document.getElementById("confbar"),
+      confTxt=document.getElementById("conftext"), slider=document.getElementById("slider");
+
+function bracket(ka){
+  for(let i=0;i<S.length-1;i++){
+    if(ka<=S[i].t && ka>=S[i+1].t){
+      const span=S[i].t-S[i+1].t;
+      return [S[i],S[i+1], span?(S[i].t-ka)/span:0];
+    }
+  }
+  return ka>S[0].t ? [S[0],S[0],0] : [S[S.length-1],S[S.length-1],0];
+}
+
+function render(ka){
+  const [A,Bs,t]=bracket(ka);
+  const near = t<0.5 ? A : Bs;
+
+  // ice
+  const lats = iceLats(A.ice,Bs.ice,t);
+  drawIce(lats);
+
+  // water
+  gWater.innerHTML="";
+  const labels=[];
+  const keys=new Set([...Object.keys(A.lakes),...Object.keys(Bs.lakes)]);
+  for(const k of keys){
+    const a=A.lakes[k], b=Bs.lakes[k];
+    if(a&&b&&a.custom&&b.custom&&a.custom===b.custom){
+      const pts=drawWater(a,1);
+      const lab=(t<0.5?a.label:b.label);
+      if(pts&&lab) labels.push({pts,label:lab,op:1});
+    }else if(a&&b&&!a.custom&&!b.custom&&a.base===b.base){
+      const off=(a.off||0)+((b.off||0)-(a.off||0))*t;
+      const pts=drawWater(a,1,off);
+      const lab=(t<0.5?a.label:b.label);
+      if(pts&&lab) labels.push({pts,label:lab,op:1});
+    }else{
+      if(a&&1-t>0.02){const p=drawWater(a,1-t); if(p&&a.label&&t<0.5) labels.push({pts:p,label:a.label,op:1});}
+      if(b&&t>0.02){const p=drawWater(b,t); if(p&&b.label&&t>=0.5) labels.push({pts:p,label:b.label,op:1});}
+    }
+  }
+  drawLabels(labels,lats);
+  drawOutlets(near.outlets);
+
+  // text
+  const yb=Math.round(ka*1000);
+  yrEl.innerHTML = (yb<=50?"present day":yb.toLocaleString()) + " <small>"+(yb<=50?"":"years before present")+"</small>";
+  nameEl.textContent = near.name;
+  estEl.innerHTML = "<p>"+near.est+"</p>";
+  contEl.innerHTML = near.cont.map(c=>"<li>"+c+"</li>").join("");
+  outEl.innerHTML = OUTLET_ORDER.map(k=>{
+    const on = near.outlets.indexOf(k)>=0;
+    return on ? "<li>"+OUTLET[k].n+"</li>" : "";
+  }).join("") || "<li class='off'>no outlet — meltwater leaves the region beyond this map</li>";
+  confBar.style.width = Math.round(near.conf*100)+"%";
+  confTxt.textContent = near.conf>=.75 ? "well constrained"
+                       : near.conf>=.6 ? "reasonably well constrained"
+                       : near.conf>=.5 ? "moderately constrained"
+                       : "weakly constrained";
+
+  const X=hx(Math.min(17,Math.max(0,ka)));
+  head.setAttribute("x1",X); head.setAttribute("x2",X); headdot.setAttribute("cx",X);
+}
+
+/* ---------- interaction ---------- */
+let current=17000;
+function setYears(y,fromSlider){
+  current=Math.max(0,Math.min(17000,y));
+  if(!fromSlider) slider.value=Math.round(current/100)*100;
+  render(current/1000);
+}
+slider.addEventListener("input",()=>setYears(+slider.value,true));
+document.getElementById("back").addEventListener("click",()=>{stop();setYears(current+100);});
+document.getElementById("fwd").addEventListener("click",()=>{stop();setYears(current-100);});
+
+let raf=null,last=0;
+const playBtn=document.getElementById("play");
+function step(ts){
+  if(!last) last=ts;
+  const dt=Math.min(60,ts-last); last=ts;
+  let y=current - dt*1.6;          // ~1600 yr per second
+  if(y<=0){ y=0; setYears(y); stop(); return; }
+  setYears(y);
+  raf=requestAnimationFrame(step);
+}
+function play(){
+  if(current<=0) setYears(17000);
+  playBtn.textContent="Pause"; last=0; raf=requestAnimationFrame(step);
+}
+function stop(){ if(raf) cancelAnimationFrame(raf); raf=null; playBtn.textContent="Play"; }
+playBtn.addEventListener("click",()=> raf?stop():play());
+if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) playBtn.textContent="Play";
+
+setYears(17000);
+})();
+</script>
+</body>
+</html>
