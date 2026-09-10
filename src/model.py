@@ -3,6 +3,8 @@ Paleo-hydrography of the Great Lakes basins.
 
 DEM        : ETOPO 2022 15" (NOAA NCEI), includes the NOAA Great Lakes bathymetry
 GIA        : ICE-6G_C (VM5a) land deformation, Godbout, Brouard & Roy, PANGAEA 947536
+             or ICE-7G_NA, calibrated over the Great Lakes against water-level
+             gauges and GPS -- see src/gia_calib.py and CALIB below
 Ice margins: NADI-1 optimal isochrones, Dalton et al. 2023, QSR 321, 108345
 
 Per 500-yr timestep:
@@ -24,9 +26,16 @@ from shapely.ops import unary_union
 
 W, E, S, N = -95.0, -70.0, 38.0, 53.0
 RES = 1/120.0
-MODEL = 'ICE7G'
 import os as _os
-MARGIN = _os.environ.get('MARGIN', 'OPTIMAL')   # 'OPTIMAL', 'MAX' or 'MIN'      # 'ICE6G' or 'ICE7G'
+MODEL  = _os.environ.get('MODEL', 'ICE7G')      # 'ICE6G' or 'ICE7G'
+MARGIN = _os.environ.get('MARGIN', 'OPTIMAL')   # 'OPTIMAL', 'MAX' or 'MIN'
+# Observational calibration of the base model over the Great Lakes (see
+# src/gia_calib.py for the sources, the fit and why it is shaped the way it
+# is). On by default: the raw global inversions were never fitted to lake
+# gauges, and over these basins they are demonstrably off -- ICE-7G tilts
+# Huron-Michigan ~30% too steeply and Erie less than half steeply enough.
+# CALIB=0 restores the uncalibrated base model for comparison.
+CALIB = _os.environ.get('CALIB', '1') not in ('0', 'off', 'OFF', '')
 GDB = {'ICE6G': ('data/raw/ice6g_pts/ICE6G_Data_points.gdb', 'ICE6G_datapoint_%05d'),
        'ICE7G': ('data/raw/ice7g/ICE7G_Data_points_all.gdb', 'ICE7G_datapoints_%05d')}[MODEL]
 NADI = 'data/raw/nadi1/NADI-1 shapefiles Dalton et al. QSR'
@@ -91,7 +100,7 @@ def _gia_cube():
     cache_path = f'data/gia_cube_{MODEL}.npz'
     if os.path.exists(cache_path):
         d = np.load(cache_path)
-        _gia_cube_cache = (d['gia'], d['esl'])
+        _gia_cube_cache = _calibrate(d['gia'], d['esl'])
         return _gia_cube_cache
     print(f'building smoothed GIA cube for {MODEL}, {len(STEPS_T)} timesteps...', flush=True)
     grids, esls = [], []
@@ -110,8 +119,34 @@ def _gia_cube():
     gia = gaussian_filter1d(gia, sigma=1.0, axis=0, mode='nearest')
     esl = gaussian_filter1d(esl, sigma=1.0, axis=0, mode='nearest')
     np.savez(cache_path, gia=gia, esl=esl)
-    _gia_cube_cache = (gia, esl)
+    _gia_cube_cache = _calibrate(gia, esl)
     return _gia_cube_cache
+
+
+def _calibrate(gia, esl):
+    """Add the observational Great Lakes correction to the base uplift cube.
+
+    Applied after the cache is read, and after the time-axis smoothing above,
+    so the one cached base cube serves both CALIB settings and the correction
+    keeps its exact dU(t=0) = 0. Done in place a timestep at a time from a
+    single 2-D rate field: the correction is separable in space and time, and
+    a second 626 MB cube is not worth materialising to add a scaled copy of
+    the same grid 29 times.
+    """
+    if not CALIB:
+        return gia, esl
+    import gia_calib
+    F = gia_calib.fit(MODEL)
+    LO, LA = np.meshgrid(lon_c, lat_c)
+    dv = gia_calib.rate_field(MODEL, LO, LA, F=F)        # m/yr
+    gia = np.array(gia, dtype='f4', copy=True)           # npz load is read-only
+    for i, t in enumerate(STEPS_T):
+        if t:
+            gia[i] += dv*np.float32(gia_calib.time_factor(t))
+    print(f'  GIA calibrated over the Great Lakes: dv {dv.min()*1e4:+.1f} to '
+          f'{dv.max()*1e4:+.1f} cm/century, dU up to '
+          f'{max(abs(dv.min()), abs(dv.max()))*gia_calib.TAU:.1f} m', flush=True)
+    return gia, esl
 
 
 def gia_grid(t_yr):

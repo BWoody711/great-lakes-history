@@ -23,3 +23,6 @@ desktop.ini
 *.swp
 .vscode/
 .idea/
+
+# build outputs, copied into data/
+out/

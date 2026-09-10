@@ -34,7 +34,7 @@ let MODERN=LK_F[LK_F.length-1];
 /* ---- rebound state ---- */
 const RB_F=RB_D.frames.slice().sort((a,b)=>b.t-a.t);
 const RB_LON=RB_D.lon1d, RB_LAT=RB_D.lat1d, RB_BG=RB_D.bg;
-let RB_MODE='none', RB_MODEL='ice7';
+let RB_MODE='none', RB_MODEL='cal';
 
 /* ---- shared map viewport ---- */
 const VW=-94, VE=-71, VN=51.5, VS=39;
@@ -71,11 +71,13 @@ function giaAt(grid, lo, la){
   if(a==null||b==null||c==null||d==null) return null;
   return (a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;
 }
+const RB_SRC = m => m==='cal' ? (RB_D.cal||RB_D.ice7) : m==='ice7' ? RB_D.ice7 : RB_D.ice6;
 function gridFor(t,model){
-  const src = model==='ice7' ? RB_D.ice7 : RB_D.ice6;
+  const src = RB_SRC(model);
   if(t===0) return null;
   return src[String(t)] || src[String(nearestT(t))];
 }
+const MODEL_NAME = {cal:'ICE-7G_NA, gauge-calibrated', ice7:'ICE-7G_NA (VM7)', ice6:'ICE-6G_C (VM5a)'};
 function upliftColour(v,max){
   const x=Math.max(-1,Math.min(1,v/max));
   if(x>=0){ const u=Math.pow(x,.75);
@@ -97,12 +99,15 @@ function topoColour(z){
 }
 let img=null;
 function drawRaster(t){
-  const g=gridFor(t,RB_MODEL), g6=gridFor(t,'ice6'), g7=gridFor(t,'ice7');
+  const g=gridFor(t,RB_MODEL), g6=gridFor(t,'ice6'), g7=gridFor(t,'ice7'), gc=gridFor(t,'cal');
+  // the two difference modes read a fixed pair, not the selected model
+  const dA = RB_MODE==='calib' ? gc : g7, dB = RB_MODE==='calib' ? g7 : g6;
   if(!img) img=ctx.createImageData(CW,CH);
   const px0=img.data;
   const bw=RB_BG.w, bh=RB_BG.h;
   const [W,S,E,N]=RB_BG.bbox;
-  let smax = RB_MODE==='diff' ? 60 : 500;
+  const isDiff = RB_MODE==='diff' || RB_MODE==='calib';
+  let smax = RB_MODE==='calib' ? 8 : RB_MODE==='diff' ? 60 : 500;
   if(RB_MODE==='uplift'){ smax=0; if(g) for(const row of g) for(const v of row) if(v!=null) smax=Math.max(smax,Math.abs(v)); smax=Math.max(50,Math.ceil(smax/50)*50); }
   for(let y=0;y<CH;y++){
     const la = VN-(y+0.5)/CH*(VN-VS);
@@ -118,8 +123,8 @@ function drawRaster(t){
         if(RB_MODE==='topo'){
           const u = t===0?0:(giaAt(g,lo,la)||0);
           [r,gg,b]=topoColour(z0-u);
-        } else if(RB_MODE==='diff'){
-          const a=t===0?0:(giaAt(g7,lo,la)||0), c=t===0?0:(giaAt(g6,lo,la)||0);
+        } else if(isDiff){
+          const a=t===0?0:(giaAt(dA,lo,la)||0), c=t===0?0:(giaAt(dB,lo,la)||0);
           [r,gg,b]=upliftColour(a-c,smax);
         } else {
           const u=t===0?0:(giaAt(g,lo,la)||0);
@@ -133,7 +138,7 @@ function drawRaster(t){
   ctx.putImageData(img,0,0);
   if(t!==0){
     ctx.lineWidth=1; ctx.strokeStyle='rgba(30,40,50,.35)';
-    const step = RB_MODE==='diff'?20:100;
+    const step = RB_MODE==='calib'?2:RB_MODE==='diff'?20:100;
     for(let lvl=-600;lvl<=800;lvl+=step){
       ctx.beginPath();
       for(let x=0;x<CW;x+=3){
@@ -141,7 +146,7 @@ function drawRaster(t){
         let prev=null;
         for(let y=0;y<CH;y+=3){
           const la=VN-y/CH*(VN-VS);
-          const v = RB_MODE==='diff' ? (giaAt(g7,lo,la)-giaAt(g6,lo,la)) : giaAt(g,lo,la);
+          const v = isDiff ? (giaAt(dA,lo,la)-giaAt(dB,lo,la)) : giaAt(g,lo,la);
           if(v==null){prev=null;continue;}
           if(prev!==null && ((prev<lvl)!==(v<lvl))) { ctx.moveTo(x,y); ctx.lineTo(x+3,y); }
           prev=v;
@@ -389,16 +394,19 @@ function drawSection(t){
 function probe(t,lo,la,model){ const g=gridFor(t,model); return t===0?0:(giaAt(g,lo,la)); }
 function buildReadout(t){
   const ro=document.getElementById('readout');
-  const nm = RB_MODEL==='ice7' ? 'ICE-7G_NA (VM7)' : 'ICE-6G_C (VM5a)';
+  const nm = MODEL_NAME[RB_MODEL];
   const sites=[['Chicago outlet',-87.80,41.72],['Port Huron',-82.42,43.00],
                ['Sault',-84.35,46.50],['North Bay sill',-79.45,46.32],['Kingston',-76.46,44.23]];
   let h=`<p style="margin:0 0 10px">Rebound readout at solved timestep ${t/1000} ka, ${nm}.</p>`;
-  h+='<table><tr><th>Site</th><th style="text-align:right">ICE-7G</th><th style="text-align:right">ICE-6G</th><th style="text-align:right">difference</th></tr>';
+  h+='<table><tr><th>Site</th><th style="text-align:right">calibrated</th>'+
+     '<th style="text-align:right">ICE-7G</th><th style="text-align:right">ICE-6G</th>'+
+     '<th style="text-align:right">calib − ICE-7G</th></tr>';
+  const f=v=>v==null?'—':v.toFixed(1)+' m';
   for(const [n,lo,la] of sites){
-    const a=probe(t,lo,la,'ice7'), b=probe(t,lo,la,'ice6');
-    h+=`<tr><td>${n}</td><td class="n">${a==null?'—':a.toFixed(1)+' m'}</td>`+
-       `<td class="n">${b==null?'—':b.toFixed(1)+' m'}</td>`+
-       `<td class="n">${(a==null||b==null)?'—':((a-b>=0?'+':'')+(a-b).toFixed(1))+' m'}</td></tr>`;
+    const c=probe(t,lo,la,'cal'), a=probe(t,lo,la,'ice7'), b=probe(t,lo,la,'ice6');
+    h+=`<tr><td>${n}</td><td class="n">${f(c)}</td><td class="n">${f(a)}</td>`+
+       `<td class="n">${f(b)}</td>`+
+       `<td class="n">${(a==null||c==null)?'—':((c-a>=0?'+':'')+(c-a).toFixed(1))+' m'}</td></tr>`;
   }
   const nb=probe(t,-79.45,46.32,RB_MODEL), ph=probe(t,-82.42,43.00,RB_MODEL);
   h+='</table>';
@@ -475,12 +483,12 @@ document.getElementById('mgMax').addEventListener('click',()=>setMargin('max'));
 
 function setModel(m){
   RB_MODEL=m;
-  document.getElementById('m6').setAttribute('aria-pressed',String(m==='ice6'));
-  document.getElementById('m7').setAttribute('aria-pressed',String(m==='ice7'));
+  for(const [id,v] of [['m6','ice6'],['m7','ice7'],['mc','cal']])
+    document.getElementById(id).setAttribute('aria-pressed',String(m===v));
   render(cur);
 }
-document.getElementById('m6').addEventListener('click',()=>setModel('ice6'));
-document.getElementById('m7').addEventListener('click',()=>setModel('ice7'));
+for(const [id,v] of [['m6','ice6'],['m7','ice7'],['mc','cal']])
+  document.getElementById(id).addEventListener('click',()=>setModel(v));
 
 for(const radio of document.querySelectorAll('input[name=base]')){
   radio.addEventListener('change',()=>{ if(radio.checked){ RB_MODE=radio.value; render(cur); } });

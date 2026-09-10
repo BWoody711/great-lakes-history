@@ -49,9 +49,10 @@ Reproduces:
 - A proglacial lake ponded across the Erie, Saginaw and Huron basins at ~218 m at
   14 ka, close to the mapped Lake Warren shoreline.
 - The Champlain Sea, unprompted, in the St. Lawrence and Ottawa lowlands.
-- The Nipissing highstand: confluent upper lakes at **184.1 m spilling at Port Huron**
+- The Nipissing highstand: confluent upper lakes at **183.8 m spilling at Port Huron**
   at 5 ka, against a mapped strandline of about 184 m.
-- Superior separating from Michigan–Huron at the Sault between 2 and 1.5 ka.
+- Superior separating from Michigan–Huron at the Sault between 2.5 and 2 ka
+  (between 2 and 1.5 ka before the gauge calibration).
 
 Does not:
 
@@ -88,6 +89,65 @@ Switching the rebound model from ICE-6G_C to ICE-7G_NA fixed the Nipissing highs
 and left the Algonquin failure untouched, which is what localises that failure to the
 ice-margin dataset rather than to the rebound field.
 
+## Calibrating the rebound field
+
+ICE-6G and ICE-7G are global inversions, and neither was ever fitted to Great Lakes
+lake-level gauges. Over these basins the modelled tilt is an extrapolation, and it is
+measurably wrong. `src/gia_calib.py` corrects it against three observational datasets
+and is on by default; `CALIB=0` restores the raw base model.
+
+Mainville & Craymer (2005) give relative vertical velocities at 55 gauges from 140
+years of monthly water levels, good to ±1 cm/century within a lake. Stitched into one
+frame with their own inter-lake ties — which reproduces their published 57 cm/century
+Rossport–Calumet maximum, the check that the stitch is right — they show ICE-7G tilting
+Michigan–Huron about 30% too steeply and Erie less than half steeply enough:
+
+| basin | gauges | observed range | ICE-7G range | observed / model |
+|---|---:|---:|---:|---:|
+| Superior | 10 | 52.8 | 46.5 | 1.06 |
+| Michigan–Huron | 20 | 41.4 | 32.4 | 0.77 |
+| Erie | 13 | 14.2 | 4.8 | 2.27 |
+| Ontario | 9 | 22.5 | 12.0 | 1.28 |
+
+Ranges in cm/century about each basin's own datum. This is the same complaint Mainville
+& Craymer made against ICE-4G, whose VM2-family viscosity ICE-5G/6G/7G all inherit.
+
+The correction is a cubic trend surface (chosen by leave-one-out CV; quartic overfits)
+fitted to the residual with a free datum offset per lake carrying their ±6 cm/century
+inter-lake tie uncertainty as a prior. It brings the weighted residual from 4.24 to
+1.80 cm/century against a gauge precision near 1.
+
+The gauges carry no absolute datum, so only the pattern is applied and the base model's
+regional mean rate is kept. Sella et al. (2007) is what justifies keeping it: 362 GPS
+sites put Hudson Bay uplift near 10 mm/yr where ICE-7G gives 10.5, and the hinge line
+through the lakes where ICE-7G puts it at 43–44°N. Their one disagreement is the far
+field, where GPS shows 1–2 mm/yr of subsidence south of the lakes against ICE-7G's
+0.3–1.0. The calibration passes that as an independent test it was not fitted to:
+modelled subsidence at Chicago moves from −0.4 to −1.5 mm/yr, into the observed band.
+
+Propagating the present-day rate correction back in time uses
+`ΔU(t) = Δv · τ · (1 − exp(−t/τ))`, with τ ≈ 4 ka measured from the decay of ICE-7G's
+own uplift rate. It is zero at the present, so modern topography is untouched, and it
+**saturates** rather than growing. The single-mode alternative `Δv · τ · (exp(t/τ) − 1)`
+looks more physical and is wrong here: it would put tens of metres of unconstrained
+correction at 14.5 ka and swamp the deglacial uplift, which the raised strandlines
+already constrain. The gauges measure the slow tail and are bounded to it. Outside the
+gauge network the correction tapers to zero.
+
+What it changed: Lake Superior separates from Michigan–Huron at the Sault between
+2.5 and 2 ka rather than between 2 and 1.5 ka — one timestep earlier, and both inside
+the range the late-Holocene record allows, so a shift in timing rather than a fix; the
+Michigan basin sits 6–7 m lower against the North Bay sill at 11 ka. Everywhere else
+the largest lake's level moves 0.2–2.9 m and its spill point does not move at all.
+Brierley-Green (2023) is the reason to treat this as an empirical patch rather than a
+better Earth model: the best fit over mantle viscosity and lithospheric thickness
+against North American GNSS still leaves 1.30 mm/yr of vertical residual, so lateral
+heterogeneity is doing work no spherically symmetric model can absorb.
+
+`python src/gia_calib.py [ICE7G|ICE6G]` prints the full validation report — the stitch
+check, the Sella comparisons, the measured relaxation times, the per-basin gradients,
+the CV table and the largest remaining misfits.
+
 ## Layout
 
     index.html                     the deployed page: palaeolakes, ice, Algonquin,
@@ -121,6 +181,7 @@ ice-margin dataset rather than to the rebound field.
     src/
       build_dem.py                 mosaic the ETOPO tiles
       model.py                     the flooding model
+      gia_calib.py                 gauge/GPS calibration of the rebound field
       export.py                    run all timesteps, write GeoJSON
       export_rebound.py            rebound lattices and transect
       algonquin.py                 the imposed Algonquin water plane
@@ -157,6 +218,9 @@ GSHHG is used as the base geometry because raster boundaries quantise orientatio
 | Topography and bathymetry | ETOPO 2022 15″, NOAA NCEI, carrying the NOAA Great Lakes bathymetric grids |
 | Ice margins | NADI-1, Dalton et al. 2023, *Quaternary Science Reviews* 321, 108345 (Zenodo 8161764) |
 | Isostatic rebound | ICE-7G_NA (VM7), Roy & Peltier 2017–2018, via Godbout, Brouard & Roy, PANGAEA 947536 |
+| Present-day tilt (calibration) | Mainville & Craymer 2005, *GSA Bulletin* 117, 1070–1080 — 55 Great Lakes water-level gauges |
+| Present-day uplift (calibration) | Sella et al. 2007, *Geophys. Res. Lett.* 34, L02306 — 362 North American GPS sites |
+| Earth rheology (calibration) | Brierley-Green 2023, MSc thesis, University of Victoria — GNSS grid search over viscosity and lithospheric thickness |
 | Shoreline geometry | GSHHG 2.3.7 (Wessel & Smith); Natural Earth 1:10m |
 | Shoreline type, US | NOAA Environmental Sensitivity Index atlases, 1994–2025 |
 | Shoreline type, Canada | ECCC Shoreline Classification (SCAT); ECCC Great Lakes Nearshore Waters Assessment |
@@ -168,6 +232,7 @@ roughly 700 MB.
 
     bash src/fetch_data.sh          # ~700 MB of downloads
     python src/build_dem.py
+    python src/gia_calib.py         # optional: print the calibration report
     MARGIN=OPTIMAL python src/export.py
     MARGIN=MAX     python src/export.py
     python src/export_rebound.py
@@ -200,7 +265,12 @@ the repository root, then open `http://localhost:8000/`.
 - ICE-7G is a 1° global model. The lattice visible under the rebound fields is the real
   resolution of the data; a bedrock sill a few kilometres across is far below it — see
   Lake Simcoe under "What it reproduces, and what it does not" for the concrete case
-  and what was tried against it.
+  and what was tried against it. The gauge calibration corrects the tilt over these
+  basins; it does not add resolution, and it cannot.
+- The calibration is fitted to *modern* rates and bounded to the last few thousand
+  years. It should not be read as a claim about deglacial-age uplift, which it is
+  deliberately built not to touch, and its 1.80 cm/century residual is still above the
+  ~1 cm/century the gauges resolve.
 - ESI atlas vintages range from 1994 to 2025. Lake Huron's US shore is typed from
   30-year-old mapping.
 - ECCC nearshore reaches average 17 km on Superior against 1.3 km on Erie, so the

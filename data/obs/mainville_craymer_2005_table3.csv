@@ -1,0 +1,64 @@
+# Table 3 of Mainville, A. & Craymer, M.R. (2005) "Present-day tilting of the
+# Great Lakes region based on water level gauges", GSA Bulletin 117(7-8), 1070-1080.
+# Gauge vertical velocity from 1860-2000 monthly mean water levels at 55 gauges,
+# by least-squares adjustment. Velocities are RELATIVE to the reference gauge at
+# each lake's outlet (v=0 by construction); they carry no absolute datum.
+# vel/sigma in cm/century. Positive = rising relative to that lake's outlet.
+# 'rejected' flags the three gauges the authors excluded from their Figure 7
+# (short records, large sigma, inconsistent with the rest of Lake Erie).
+lake,gauge,lat,lon,vel,sigma,rejected
+ontario,Burlington,43.338889,-79.768889,-20.0,0.7,0
+ontario,Cape Vincent,44.130000,-76.329722,0.0,0.0,0
+ontario,Cobourg,43.957778,-78.165000,-7.7,0.4,0
+ontario,Kingston,44.216944,-76.516944,2.5,0.2,0
+ontario,Olcott,43.340000,-78.730000,-11.3,0.6,0
+ontario,Oswego,43.460000,-76.510000,-4.5,0.2,0
+ontario,Port Weller,43.236944,-79.219722,-14.7,0.3,0
+ontario,Rochester,43.259722,-77.629722,-10.2,0.2,0
+ontario,Toronto,43.640000,-79.380833,-12.1,0.2,0
+erie,Barcelona,42.329722,-79.599722,-1.3,2.1,0
+erie,Bar Point,42.049722,-83.110833,-16.1,1.4,1
+erie,Buffalo Harbor,42.890000,-78.890000,0.0,0.0,0
+erie,Cleveland,41.530000,-81.640000,-9.8,0.3,0
+erie,Erie,42.149722,-80.079722,-12.1,1.2,0
+erie,Erieau,42.259722,-81.915000,-9.6,1.1,0
+erie,Fairport Harbor,41.759722,-81.290000,-21.7,2.2,1
+erie,Fermi Power,41.966667,-83.250000,-9.6,1.3,0
+erie,Kingsville,42.026944,-82.734722,-10.3,1.2,0
+erie,Marblehead,41.549722,-82.730000,-8.4,1.2,0
+erie,Monroe,41.899722,-83.359722,-16.0,5.9,1
+erie,Port Colborne,42.873889,-79.252778,-5.7,0.5,0
+erie,Port Dover,42.780833,-80.201944,-1.8,1.1,0
+erie,Port Stanley,42.658889,-81.212778,-7.4,0.5,0
+erie,Sturgeon Point,42.679722,-79.030000,2.1,1.6,0
+erie,Toledo,41.700000,-83.480000,-8.6,0.4,0
+huronmich,Collingwood,44.505000,-80.216944,16.6,0.7,0
+huronmich,De Tour,46.000000,-83.900000,17.3,0.8,0
+huronmich,Essexville,43.649722,-83.849722,-1.3,0.9,0
+huronmich,Goderich,43.745833,-81.728889,-1.5,0.7,0
+huronmich,Harbor Beach,43.850000,-82.650000,0.1,0.7,0
+huronmich,Harrisville,44.670000,-83.280000,8.0,1.1,0
+huronmich,Lakeport,43.149722,-82.500000,0.0,0.0,0
+huronmich,Little Current,45.980833,-81.927778,27.0,1.0,0
+huronmich,Mackinaw City,45.780000,-84.719722,10.0,0.7,0
+huronmich,Parry Sound,45.337778,-80.035833,24.3,1.0,0
+huronmich,Thessalon,46.252778,-83.551944,20.8,0.7,0
+huronmich,Tobermory,45.258889,-81.665833,16.7,1.0,0
+huronmich,Calumet Harbor,41.700000,-87.500000,-10.4,0.7,0
+huronmich,Green Bay,44.500000,-88.099722,-6.2,0.9,0
+huronmich,Holland,42.399722,-86.200000,-7.9,0.8,0
+huronmich,Kewaunee,44.399722,-87.500000,-8.5,1.8,0
+huronmich,Ludington,44.000000,-86.500000,-12.2,0.8,0
+huronmich,Milwaukee,43.100000,-87.900000,-14.4,0.7,0
+huronmich,Port Inland,46.000000,-85.900000,9.4,1.1,0
+huronmich,Sturgeon Bay,44.899722,-87.400000,-3.8,0.7,0
+superior,Duluth,46.670000,-92.099722,-25.3,0.3,0
+superior,Grand Marais,47.750000,-90.329722,-7.6,0.8,0
+superior,Gros Cap,46.528889,-84.584722,1.6,0.7,0
+superior,Marquette,46.549722,-87.390000,-12.2,0.3,0
+superior,Michipicoten,47.961944,-84.900833,23.3,0.3,0
+superior,Ontonagon,46.869722,-89.310000,-18.7,0.7,0
+superior,Point Iroquois,46.479722,-84.640000,0.0,0.0,0
+superior,Rossport,48.833889,-87.519722,27.5,0.8,0
+superior,Thunder Bay,48.408889,-89.216944,2.4,0.3,0
+superior,Two Harbors,47.009722,-91.670000,-21.2,0.5,0

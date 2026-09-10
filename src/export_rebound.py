@@ -1,12 +1,18 @@
 """Export for the rebound / topobathy viewer.
 
-  - the ICE-6G_C and ICE-7G_NA uplift lattices at their native 1 degree
+  - the ICE-6G_C, ICE-7G_NA and gauge-calibrated uplift lattices at their
+    native 1 degree
   - the modern topo-bathy, decimated to 0.05 deg
   - a high-resolution transect from the Chicago outlet to North Bay, with the
     modern ground, the palaeo ground and the modelled water plane at each step
+
+The transect and the lakes follow model.py, so they carry whatever CALIB is
+set to; the three lattices are always all exported, so the viewer can switch
+between them without a rebuild.
 """
 import numpy as np, geopandas as gpd, json, gc
 import model as M
+import gia_calib
 
 STEPS = list(range(14500, 500, -500)) + [0]
 TRANSECT = [(-87.80, 41.72), (-79.45, 46.32)]      # Chicago outlet -> North Bay
@@ -38,15 +44,23 @@ tcol = ((tlon - M.W)/M.RES).astype(int)
 dist = np.cumsum(np.r_[0, np.hypot(np.diff(tlon)*111.32*np.cos(np.radians(tlat[:-1])),
                                    np.diff(tlat)*111.32)])
 
-G6 = ('data/ice6g_pts/ICE6G_Data_points.gdb', 'ICE6G_datapoint_%05d')
-G7 = ('data/ice7g/ICE7G_Data_points_all.gdb', 'ICE7G_datapoints_%05d')
+G6, G7 = gia_calib.GDB['ICE6G'], gia_calib.GDB['ICE7G']
 
-lat6 = {}; lat7 = {}
+# The calibration is a rate field in space times a scalar in time, so the
+# calibrated lattice is built from the same fit the model uses rather than
+# re-derived here. Evaluated on the 1 deg lattice it is only the correction
+# the viewer needs to show; the taper keeps it inside the gauge network.
+CF = gia_calib.fit('ICE7G')
+
+lat6 = {}; lat7 = {}; latc = {}
 for t in STEPS:
     if t == 0:
         continue
     lo, la, g6 = lattice(*G6, t); _, _, g7 = lattice(*G7, t)
+    LO, LA = np.meshgrid(np.array(lo), np.array(la))
+    dv = gia_calib.surface(CF, LO, LA)/1e4                  # m/yr
     lat6[t] = np.round(g6, 1).tolist(); lat7[t] = np.round(g7, 1).tolist()
+    latc[t] = np.round(g7 + dv*gia_calib.time_factor(t), 1).tolist()
     print('lattice', t, flush=True)
 LON1D, LAT1D = lo, la
 
@@ -73,7 +87,12 @@ for t in STEPS:
     print('transect', t, flush=True)
 
 json.dump(dict(
-    lon1d=LON1D, lat1d=LAT1D, ice6=lat6, ice7=lat7,
+    lon1d=LON1D, lat1d=LAT1D, ice6=lat6, ice7=lat7, cal=latc,
+    calib=dict(on=bool(M.CALIB), tau=gia_calib.TAU, deg=gia_calib.DEGREE,
+               lo=round(CF['lo'], 1), hi=round(CF['hi'], 1),
+               wrms_before=round(CF['wrms_before'], 2),
+               wrms_after=round(CF['wrms_after'], 2),
+               n=len(CF['G']['name'])),
     bg=dict(w=dm.shape[1], h=dm.shape[0], bbox=[M.W, M.S, M.E, M.N],
             z=np.round(dm).astype('int16').ravel().tolist()),
     transect=dict(lon=np.round(tlon, 3).tolist(), lat=np.round(tlat, 3).tolist(),
